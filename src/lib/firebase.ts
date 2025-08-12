@@ -15,7 +15,7 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp;
+let app: FirebaseApp | undefined;
 
 // Prevent Firebase initialization on the server by checking for window
 if (typeof window !== "undefined") {
