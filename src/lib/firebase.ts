@@ -1,3 +1,4 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 
@@ -17,12 +18,13 @@ const firebaseConfig = {
 
 let app: FirebaseApp | undefined;
 
-// Prevent Firebase initialization on the server by checking for window
+// Initialize Firebase only on the client side
 if (typeof window !== "undefined") {
   if (!getApps().length) {
-    // @ts-ignore
-    // For local development, it uses the firebaseConfig object defined above.
-    const config = self.firebaseConfig ? self.firebaseConfig : firebaseConfig;
+    // This configuration will be used for both local development and deployed environments.
+    // In a deployed App Hosting environment, the config object will be automatically populated.
+    // For local development, it uses the firebaseConfig object defined above from your .env.local file.
+    const config = (window as any).firebaseConfig ?? firebaseConfig;
     if (config && config.apiKey) {
       app = initializeApp(config);
     } else {
@@ -33,5 +35,4 @@ if (typeof window !== "undefined") {
   }
 }
 
-// @ts-ignore
 export { app };
