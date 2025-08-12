@@ -1,3 +1,4 @@
+
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 
@@ -17,28 +18,23 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 
-// Check if we are on the client-side before initializing
-if (typeof window !== 'undefined') {
-  if (!getApps().length) {
-    // @ts-ignore
-    // The firebaseConfig is injected automatically by the App Hosting script in deployed environments.
-    // For local development, it uses the firebaseConfig object defined above.
-    const config = self.firebaseConfig ? self.firebaseConfig : firebaseConfig;
-    // Basic validation to ensure config is not empty
-    if (config && config.apiKey) {
-      app = initializeApp(config);
+// Prevent Firebase initialization on the server
+if (typeof window !== "undefined") {
+    if (!getApps().length) {
+        // @ts-ignore
+        // The firebaseConfig is injected automatically by the App Hosting script in deployed environments.
+        // For local development, it uses the firebaseConfig object defined above.
+        const config = self.firebaseConfig ? self.firebaseConfig : firebaseConfig;
+        if (config && config.apiKey) {
+            app = initializeApp(config);
+        } else {
+            console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
+        }
     } else {
-      console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
-      // Provide a dummy app object to avoid crashing the app
-      app = {} as FirebaseApp;
+        app = getApp();
     }
-  } else {
-    app = getApp();
-  }
-} else {
-  // Provide a dummy app object for server-side rendering
-  app = {} as FirebaseApp;
 }
 
 
+// @ts-ignore
 export { app };
