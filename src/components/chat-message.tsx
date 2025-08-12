@@ -5,14 +5,10 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Separator } from './ui/separator';
-import { AnalysisPayload, Expiry, ExpiryPayload, Opportunity, OptionData } from '@/lib/bot-logic';
+import { AnalysisPayload, Expiry, ExpiryPayload, Opportunity, OptionData, Message as MessageType } from '@/lib/bot-logic';
 
-export interface Message {
-  id: string;
-  role: 'user' | 'bot';
-  content: React.ReactNode;
-  payload?: any;
-}
+export type Message = MessageType;
+
 
 const renderPayload = (payload: any, onExpirySelect: (expiry: string) => void, onCommandClick: (command: string) => void) => {
     if (!payload) return null;
@@ -151,6 +147,36 @@ const OpportunityCard = ({ opportunity, onCommandClick }: { opportunity: Opportu
 
 export default function ChatMessage({ role, content, payload, onExpirySelect, onCommandClick }: Message & { onExpirySelect: (expiry: string) => void; onCommandClick: (command: string) => void; }) {
   const isUser = role === 'user';
+  
+  // This function reconstructs the complex content for bot messages that can't be serialized to Firestore.
+  const getBotMessageContent = () => {
+      if (payload?.type === 'error' && payload.authUrl) {
+          return (
+              <div>
+                  <p>{payload.message}</p>
+                  <a href={payload.authUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline font-semibold mt-2 inline-block">
+                      Click here to authorize with Upstox
+                  </a>
+                  <p className="text-xs mt-2 text-muted-foreground">After authorizing, you will be redirected. Copy the `code` from the new URL's address bar and paste it in the chat.</p>
+              </div>
+          );
+      }
+      if (payload?.type === 'expiries') {
+        return "Here are the available expiry dates for NIFTY 50.";
+      }
+      if (payload?.type === 'analysis') {
+         return `Analysis for expiry ${payload.opportunities[0]?.strike ? `around strike ${payload.opportunities[0].strike}` : ''}:`;
+      }
+      if (payload?.type === 'paper-trade' || payload?.type === 'portfolio' || payload?.type === 'close-position') {
+        return payload.message;
+      }
+      // Fallback to content if it's a simple string, or for user messages
+      return content;
+  }
+
+  const messageContent = isUser ? content : getBotMessageContent();
+  const messagePayload = (payload?.type === 'error' || payload?.type === 'portfolio' || payload?.type === 'paper-trade' || payload?.type === 'close-position') ? undefined : payload;
+
 
   return (
     <div className={cn('flex items-start gap-3 w-full', isUser && 'justify-end')}>
@@ -169,8 +195,8 @@ export default function ChatMessage({ role, content, payload, onExpirySelect, on
             : 'bg-muted text-muted-foreground rounded-bl-none'
         )}
       >
-        <div className="prose-sm" style={{whiteSpace: 'pre-wrap'}}>{content}</div>
-        {payload && <div className="mt-2">{renderPayload(payload, onExpirySelect, onCommandClick)}</div>}
+        <div className="prose-sm" style={{whiteSpace: 'pre-wrap'}}>{messageContent}</div>
+        {messagePayload && <div className="mt-2">{renderPayload(messagePayload, onExpirySelect, onCommandClick)}</div>}
       </div>
       {isUser && (
         <Avatar className="w-8 h-8 border">

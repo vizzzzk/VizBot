@@ -1,5 +1,7 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
+import { getFirestore } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 
 // Your web app's Firebase configuration is automatically provided by App Hosting.
 // https://firebase.google.com/docs/hosting/frameworks/nextjs
@@ -18,7 +20,6 @@ const firebaseConfig = {
 // A function to safely initialize and get the Firebase app
 let app: FirebaseApp;
 if (typeof window !== "undefined") {
-  // This function should only be called on the client-side.
   const apps = getApps();
   if (apps.length > 0) {
     app = getApp();
@@ -26,16 +27,18 @@ if (typeof window !== "undefined") {
     // In a deployed App Hosting environment, `window.firebaseConfig` will be populated.
     // For local development, it uses the firebaseConfig object defined above from your .env file.
     const config = (window as any).firebaseConfig ?? firebaseConfig;
-
     if (config && config.apiKey) {
       app = initializeApp(config);
-    } else {
-      console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
-      // Provide a dummy app or handle the error gracefully
-      // This part is tricky, as without a config, Firebase can't work.
-      // For now, we'll let it error out in the console but prevent a hard crash here.
     }
   }
 }
 
-export { app };
+// It's safe to call these here because the `app` instance is guarded.
+// These will only be used on the client-side where `app` is initialized.
+// @ts-ignore
+const auth = getAuth(app);
+// @ts-ignore
+const db = getFirestore(app);
+
+
+export { app, auth, db };

@@ -2,18 +2,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { getAuth, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { Bot, User, Loader, Rocket, HelpCircle, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
-import ChatMessage, { type Message } from '@/components/chat-message';
-import { sendMessage } from './actions';
-import { BotResponsePayload, Portfolio, TradeHistoryItem } from '@/lib/bot-logic';
+import ChatMessage from '@/components/chat-message';
+import { sendMessage, getUserData, saveUserData, UserData } from './actions';
+import { BotResponsePayload, Portfolio, TradeHistoryItem, Message } from '@/lib/bot-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
-import { app } from '@/lib/firebase'; // Import the initialized app
+import { auth } from '@/lib/firebase';
 
 const initialPortfolio: Portfolio = { 
     positions: [], 
@@ -25,81 +25,64 @@ const initialPortfolio: Portfolio = {
     tradeHistory: [],
 };
 
+const initialMessages: Message[] = [{
+    id: crypto.randomUUID(),
+    role: 'bot',
+    content: "Hello! I am VizBot, your NIFTY options analysis assistant. Please sign in to begin, or type 'start' or use the menu below if you're already logged in.",
+}];
+
 export default function Home() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isHydrating, setIsHydrating] = useState(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auth state listener
+  // Auth state listener and data fetcher
   useEffect(() => {
-    // getAuth must be called on the client side
-    if (app) {
-      const auth = getAuth(app);
-      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-        if (currentUser) {
-          setAccessToken(await currentUser.getIdToken());
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+      setIsHydrating(true);
+      if (currentUser) {
+        setUser(currentUser);
+        // User is logged in, fetch their data from Firestore
+        const userData = await getUserData(currentUser.uid);
+        if (userData) {
+          setPortfolio(userData.portfolio ?? initialPortfolio);
+          setAccessToken(userData.accessToken ?? null);
+          // If there are messages in DB, use them. Otherwise, keep initial welcome message.
+          if (userData.messages && userData.messages.length > 0) {
+            setMessages(userData.messages);
+          } else {
+             setMessages([{
+                id: crypto.randomUUID(),
+                role: 'bot',
+                content: "Welcome back! Type 'start' or use the menu below to begin.",
+            }]);
+          }
         } else {
-          setAccessToken(null);
+          // New user, save initial state to Firestore
+          const initialData: UserData = {
+            portfolio: initialPortfolio,
+            accessToken: null,
+            messages: initialMessages,
+          };
+          await saveUserData(currentUser.uid, initialData);
         }
-      });
-      // Cleanup subscription on unmount
-      return () => unsubscribe();
-    }
-  }, []);
-
-
-  // Load state from localStorage on initial render
-  useEffect(() => {
-    try {
-      const savedToken = localStorage.getItem('upstox_access_token');
-      const savedPortfolio = localStorage.getItem('paper_portfolio');
-      
-      if (savedToken) {
-        setAccessToken(JSON.parse(savedToken));
-      }
-      if (savedPortfolio) {
-        setPortfolio(JSON.parse(savedPortfolio));
       } else {
-        // If there is no saved portfolio, add the initial bot message
-        const initialBotMessage: Message = {
-          id: crypto.randomUUID(),
-          role: 'bot',
-          content: "Hello! I am VizBot, your NIFTY options analysis assistant. Type 'start' or use the menu below to begin.",
-        };
-        setMessages([initialBotMessage]);
+        // User is logged out
+        setUser(null);
+        setPortfolio(initialPortfolio);
+        setAccessToken(null);
+        setMessages(initialMessages);
       }
-    } catch (error) {
-      console.error("Failed to load state from localStorage", error);
-      // If parsing fails, clear the corrupted data
-      localStorage.removeItem('upstox_access_token');
-      localStorage.removeItem('paper_portfolio');
-    }
+      setIsHydrating(false);
+    });
+    // Cleanup subscription on unmount
+    return () => unsubscribe();
   }, []);
-
-  // Save state to localStorage whenever it changes
-  useEffect(() => {
-    try {
-      if (accessToken) {
-        localStorage.setItem('upstox_access_token', JSON.stringify(accessToken));
-      } else {
-        localStorage.removeItem('upstox_access_token');
-      }
-    } catch (error) {
-       console.error("Failed to save access token to localStorage", error);
-    }
-  }, [accessToken]);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem('paper_portfolio', JSON.stringify(portfolio));
-    } catch (error) {
-       console.error("Failed to save portfolio to localStorage", error);
-    }
-  }, [portfolio]);
-
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -107,18 +90,36 @@ export default function Home() {
     }
   }, [messages]);
   
-  const resetPortfolio = () => {
-    setPortfolio(initialPortfolio);
+  const resetPortfolio = async () => {
+    if (!user) {
+        toast.error("You must be logged in to reset the portfolio.");
+        return;
+    }
+    const freshPortfolio = {
+        ...initialPortfolio,
+        tradeHistory: [] // explicit reset of trade history
+    };
+    
+    const initialData: UserData = {
+        portfolio: freshPortfolio,
+        accessToken: null,
+        messages: [{
+            id: crypto.randomUUID(),
+            role: 'bot',
+            content: "Portfolio reset. Welcome back! Type 'start' or use the menu below to begin.",
+        }],
+    };
+
+    await saveUserData(user.uid, initialData);
+
+    // Update client state immediately
+    setPortfolio(freshPortfolio);
     setAccessToken(null);
-    localStorage.removeItem('paper_portfolio');
-    localStorage.removeItem('upstox_access_token');
+    setMessages(initialData.messages);
+
     toast.success("Portfolio Reset", {
-      description: "Your paper trading portfolio and access token have been cleared. The page will now reload.",
+      description: "Your paper trading portfolio, chat history, and access token have been cleared.",
     });
-     // Force a reload to clear all state
-    setTimeout(() => {
-      window.location.reload();
-    }, 1500);
   }
 
   const processAndSetMessages = (userInput: string, response: BotResponsePayload) => {
@@ -135,17 +136,7 @@ export default function Home() {
       payload: response,
     };
     
-    // If the response contains a new access token, store it.
-    if (response.accessToken) {
-        setAccessToken(response.accessToken);
-    }
-    
-    if (response.portfolio) {
-      setPortfolio(response.portfolio);
-    }
-
     if (response.type === 'error') {
-        // For error messages, we display them directly. If there's an auth URL, we render it as a clickable link.
         if(response.authUrl) {
            botMessage.content = (
             <div>
@@ -168,8 +159,16 @@ export default function Home() {
         botMessage.content = response.message;
         botMessage.payload = undefined;
     } else if (response.type === 'reset') {
-       // Message is handled by the resetPortfolio function's toast
-       return; // Do not add any messages to chat for reset
+       // Message is handled by the resetPortfolio function's toast and state update
+       return; 
+    }
+
+    // Update client state immediately. The backend has already saved it.
+    if (response.portfolio) {
+      setPortfolio(response.portfolio);
+    }
+    if (response.accessToken) {
+        setAccessToken(response.accessToken);
     }
 
     setMessages(prev => [...prev, userMessage, botMessage]);
@@ -177,7 +176,10 @@ export default function Home() {
   
   const handleSendMessage = (messageText: string) => {
     const trimmedInput = messageText.trim();
-    if (!trimmedInput || isPending) return;
+    if (!trimmedInput || isPending || !user) {
+        if (!user) toast.error("Please sign in to chat with the bot.");
+        return;
+    }
 
     if (trimmedInput.toLowerCase() === '/reset') {
       resetPortfolio();
@@ -185,20 +187,20 @@ export default function Home() {
       return;
     }
 
+    // Optimistic update of the user's message
     const tempUserMessage: Message = {
       id: crypto.randomUUID(),
       role: 'user',
       content: trimmedInput,
     };
-    // Add user message optimistically to the chat
     setMessages(prev => [...prev, tempUserMessage]);
     setInput('');
     
     startTransition(async () => {
-      // Remove the optimistic user message to avoid duplication
-      setMessages(prev => prev.slice(0, prev.length-1));
-
-      const result = await sendMessage(trimmedInput, accessToken, portfolio);
+      // Remove the optimistic user message before processing the real response
+      setMessages(prev => prev.slice(0, prev.length - 1));
+      
+      const result = await sendMessage(user.uid, trimmedInput, messages, accessToken, portfolio);
       processAndSetMessages(trimmedInput, result);
     });
   }
@@ -215,7 +217,6 @@ export default function Home() {
   const handleCommandClick = (command: string) => {
       if (command.startsWith('/paper') || command.startsWith('/close')) {
           setInput(command);
-          // Focus the input field after setting the command
           const inputElement = document.querySelector('input[aria-label="Chat input"]');
           if (inputElement) {
             (inputElement as HTMLInputElement).focus();
@@ -226,6 +227,10 @@ export default function Home() {
   }
   
   const handlePaperTrade = () => {
+      if (!user) {
+          toast.error("Please sign in to place a trade.");
+          return;
+      }
       const lastAnalysisMessage = messages.slice().reverse().find(msg => msg.payload?.type === 'analysis');
       if (lastAnalysisMessage) {
         const payload = lastAnalysisMessage.payload as BotResponsePayload & { type: 'analysis' };
@@ -283,36 +288,75 @@ export default function Home() {
     link.click();
     document.body.removeChild(link);
   }
+  
+   const handleSignIn = async () => {
+    const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+    } catch (error) {
+      console.error("Error during sign-in:", error);
+      toast.error("Sign-in failed. Please try again.");
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await auth.signOut();
+    } catch (error) {
+      console.error("Error during sign-out:", error);
+      toast.error("Sign-out failed. Please try again.");
+    }
+  };
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
       <Card className="w-full max-w-2xl h-[90vh] flex flex-col shadow-2xl rounded-2xl">
         <CardHeader className="border-b">
-          <div className="flex items-center gap-3">
-            <Bot className="w-8 h-8 text-primary" />
-            <div>
-              <CardTitle className="text-2xl font-bold font-headline">VizBot</CardTitle>
-              <CardDescription>Professional NIFTY Options Analysis</CardDescription>
+          <div className="flex items-center justify-between gap-3">
+             <div className="flex items-center gap-3">
+                <Bot className="w-8 h-8 text-primary" />
+                <div>
+                  <CardTitle className="text-2xl font-bold font-headline">VizBot</CardTitle>
+                  <CardDescription>Professional NIFTY Options Analysis</CardDescription>
+                </div>
+              </div>
+               <div>
+                {isHydrating ? (
+                  <Loader className="animate-spin" />
+                ) : user ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground hidden sm:inline">{user.displayName || user.email}</span>
+                    <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
+                  </div>
+                ) : (
+                  <Button variant="default" size="sm" onClick={handleSignIn}>Sign In with Google</Button>
+                )}
             </div>
           </div>
         </CardHeader>
         <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {messages.map((msg) => (
-            <ChatMessage key={msg.id} {...msg} onExpirySelect={handleExpirySelect} onCommandClick={handleCommandClick} />
-          ))}
+          {isHydrating ? (
+              <ChatMessage id="hydrating" role="bot" content={<div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" /> Loading your session...</div>} onExpirySelect={() => {}} onCommandClick={() => {}} />
+          ) : (
+            messages.map((msg) => (
+              <ChatMessage key={msg.id} {...msg} onExpirySelect={handleExpirySelect} onCommandClick={handleCommandClick} />
+            ))
+          )}
           {isPending && (
              <ChatMessage id="thinking" role="bot" content={<div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" /> Thinking...</div>} onExpirySelect={() => {}} onCommandClick={() => {}} />
           )}
         </CardContent>
         <div className="border-t p-4 bg-background/80 backdrop-blur-sm rounded-b-2xl">
            <div className="flex gap-2 mb-3 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => handleCommandClick('start')} disabled={isPending}><Rocket /> Start</Button>
-              <Button variant="outline" size="sm" onClick={() => handleCommandClick('auth')} disabled={isPending}><KeyRound /> Auth</Button>
-              <Button variant="outline" size="sm" onClick={handlePaperTrade} disabled={isPending}><Newspaper /> Paper Trade</Button>
-              <Button variant="outline" size="sm" onClick={() => handleCommandClick('/portfolio')} disabled={isPending}><Briefcase /> Portfolio</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCommandClick('start')} disabled={isPending || !user}><Rocket /> Start</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCommandClick('auth')} disabled={isPending || !user}><KeyRound /> Auth</Button>
+              <Button variant="outline" size="sm" onClick={handlePaperTrade} disabled={isPending || !user}><Newspaper /> Paper Trade</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCommandClick('/portfolio')} disabled={isPending || !user}><Briefcase /> Portfolio</Button>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isPending}><BookOpen/> Journal</Button>
+                  <Button variant="outline" size="sm" disabled={isPending || !user}><BookOpen/> Journal</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl">
                   <DialogHeader>
@@ -361,20 +405,20 @@ export default function Home() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="sm" onClick={() => setInput('/close ')} disabled={isPending}><XCircle /> Close</Button>
-               <Button variant="outline" size="sm" onClick={resetPortfolio} disabled={isPending}><RefreshCw /> Reset</Button>
+              <Button variant="outline" size="sm" onClick={() => setInput('/close ')} disabled={isPending || !user}><XCircle /> Close</Button>
+               <Button variant="outline" size="sm" onClick={resetPortfolio} disabled={isPending || !user}><RefreshCw /> Reset</Button>
               <Button variant="outline" size="sm" onClick={() => handleCommandClick('help')} disabled={isPending}><HelpCircle /> Help</Button>
           </div>
           <form onSubmit={handleSubmit} className="flex items-center gap-3">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type your message or use the menu..."
+              placeholder={user ? "Type your message or use the menu..." : "Please sign in to start."}
               className="flex-1 bg-white dark:bg-slate-800"
-              disabled={isPending}
+              disabled={isPending || !user}
               aria-label="Chat input"
             />
-            <Button type="submit" size="icon" disabled={!input.trim() || isPending} aria-label="Send message">
+            <Button type="submit" size="icon" disabled={!input.trim() || isPending || !user} aria-label="Send message">
               <Send className="w-5 h-5" />
             </Button>
           </form>

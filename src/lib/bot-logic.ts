@@ -16,6 +16,17 @@ const config = {
     SEBI_CHARGE: 10 / 10000000, // Rs 10 per crore
 };
 
+// ===== DATA STRUCTURES & SCHEMAS =====
+
+const MessageSchema = z.object({
+  id: z.string(),
+  role: z.enum(['user', 'bot']),
+  content: z.string().or(z.any()), // Store ReactNode as string or any for payload
+  payload: z.any().optional(),
+});
+export type Message = z.infer<typeof MessageSchema>;
+
+
 // ===== PORTFOLIO MANAGEMENT =====
 
 const PositionSchema = z.object({
