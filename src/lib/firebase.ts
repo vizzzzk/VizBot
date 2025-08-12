@@ -19,20 +19,19 @@ let app: FirebaseApp;
 
 // Prevent Firebase initialization on the server by checking for window
 if (typeof window !== "undefined") {
-    if (!getApps().length) {
-        // @ts-ignore
-        // For local development, it uses the firebaseConfig object defined above.
-        const config = self.firebaseConfig ? self.firebaseConfig : firebaseConfig;
-        if (config && config.apiKey) {
-            app = initializeApp(config);
-        } else {
-            console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
-        }
+  if (!getApps().length) {
+    // @ts-ignore
+    // For local development, it uses the firebaseConfig object defined above.
+    const config = self.firebaseConfig ? self.firebaseConfig : firebaseConfig;
+    if (config && config.apiKey) {
+      app = initializeApp(config);
     } else {
-        app = getApp();
+      console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
     }
+  } else {
+    app = getApp();
+  }
 }
-
 
 // @ts-ignore
 export { app };
