@@ -1,4 +1,3 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 
@@ -22,7 +21,6 @@ let app: FirebaseApp;
 if (typeof window !== "undefined") {
     if (!getApps().length) {
         // @ts-ignore
-        // The firebaseConfig is injected automatically by the App Hosting script in deployed environments.
         // For local development, it uses the firebaseConfig object defined above.
         const config = self.firebaseConfig ? self.firebaseConfig : firebaseConfig;
         if (config && config.apiKey) {
