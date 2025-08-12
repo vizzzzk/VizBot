@@ -17,7 +17,7 @@ const firebaseConfig = {
 
 let app: FirebaseApp;
 
-// Prevent Firebase initialization on the server
+// Prevent Firebase initialization on the server by checking for window
 if (typeof window !== "undefined") {
     if (!getApps().length) {
         // @ts-ignore
