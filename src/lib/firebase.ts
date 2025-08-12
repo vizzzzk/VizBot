@@ -16,33 +16,26 @@ const firebaseConfig = {
 };
 
 // A function to safely initialize and get the Firebase app
-const getFirebaseApp = (): FirebaseApp | undefined => {
+let app: FirebaseApp;
+if (typeof window !== "undefined") {
   // This function should only be called on the client-side.
-  if (typeof window === "undefined") {
-    return undefined;
-  }
-
-  // If apps are already initialized, return the default app
-  if (getApps().length > 0) {
-    return getApp();
-  }
-
-  // In a deployed App Hosting environment, `window.firebaseConfig` will be populated.
-  // For local development, it uses the firebaseConfig object defined above from your .env file.
-  const config = (window as any).firebaseConfig ?? firebaseConfig;
-
-  // Ensure the config object has the necessary keys before initializing
-  if (config && config.apiKey) {
-    return initializeApp(config);
+  const apps = getApps();
+  if (apps.length > 0) {
+    app = getApp();
   } else {
-    // Log an error if the config is missing. This will show in the browser console.
-    console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
-    return undefined;
-  }
-};
+    // In a deployed App Hosting environment, `window.firebaseConfig` will be populated.
+    // For local development, it uses the firebaseConfig object defined above from your .env file.
+    const config = (window as any).firebaseConfig ?? firebaseConfig;
 
-// Call the function to get the app instance.
-// This will be `undefined` on the server and the FirebaseApp instance on the client.
-const app = getFirebaseApp();
+    if (config && config.apiKey) {
+      app = initializeApp(config);
+    } else {
+      console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
+      // Provide a dummy app or handle the error gracefully
+      // This part is tricky, as without a config, Firebase can't work.
+      // For now, we'll let it error out in the console but prevent a hard crash here.
+    }
+  }
+}
 
 export { app };

@@ -36,17 +36,18 @@ export default function Home() {
   // Auth state listener
   useEffect(() => {
     // getAuth must be called on the client side
-    const auth = getAuth(app);
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      if (currentUser) {
-        setAccessToken(await currentUser.getIdToken());
-      } else {
-        setAccessToken(null);
-      }
-    });
-
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+    if (app) {
+      const auth = getAuth(app);
+      const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+        if (currentUser) {
+          setAccessToken(await currentUser.getIdToken());
+        } else {
+          setAccessToken(null);
+        }
+      });
+      // Cleanup subscription on unmount
+      return () => unsubscribe();
+    }
   }, []);
 
 
