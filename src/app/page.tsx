@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import type { User as FirebaseUser } from 'firebase/auth';
 import { Bot, User, Loader, Rocket, HelpCircle, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +12,13 @@ import { sendMessage, getUserData, saveUserData, UserData } from './actions';
 import { BotResponsePayload, Portfolio, TradeHistoryItem, Message } from '@/lib/bot-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
-import { auth } from '@/lib/firebase';
+
+// A mock user type for client-side state
+type ClientUser = {
+  uid: string;
+  displayName: string | null;
+  email: string | null;
+};
 
 const initialPortfolio: Portfolio = { 
     positions: [], 
@@ -36,23 +41,27 @@ export default function Home() {
   const [input, setInput] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio);
-  const [user, setUser] = useState<FirebaseUser | null>(null);
+  const [user, setUser] = useState<ClientUser | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isHydrating, setIsHydrating] = useState(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Auth state listener and data fetcher
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+    // This effect now simulates the onAuthStateChanged listener
+    // by checking for a user session on the server.
+    // In a real app with server-side auth, this would be handled differently.
+    const checkUserSession = async () => {
       setIsHydrating(true);
+      // For now, we'll assume a user is not logged in on initial load
+      // A proper implementation would involve a server call to check session status
+      const currentUser = null; // This would be replaced with a server check
       if (currentUser) {
         setUser(currentUser);
-        // User is logged in, fetch their data from Firestore
         const userData = await getUserData(currentUser.uid);
         if (userData) {
           setPortfolio(userData.portfolio ?? initialPortfolio);
           setAccessToken(userData.accessToken ?? null);
-          // If there are messages in DB, use them. Otherwise, keep initial welcome message.
           if (userData.messages && userData.messages.length > 0) {
             setMessages(userData.messages);
           } else {
@@ -63,7 +72,6 @@ export default function Home() {
             }]);
           }
         } else {
-          // New user, save initial state to Firestore
           const initialData: UserData = {
             portfolio: initialPortfolio,
             accessToken: null,
@@ -72,16 +80,15 @@ export default function Home() {
           await saveUserData(currentUser.uid, initialData);
         }
       } else {
-        // User is logged out
         setUser(null);
         setPortfolio(initialPortfolio);
         setAccessToken(null);
         setMessages(initialMessages);
       }
       setIsHydrating(false);
-    });
-    // Cleanup subscription on unmount
-    return () => unsubscribe();
+    };
+
+    checkUserSession();
   }, []);
 
   useEffect(() => {
@@ -290,23 +297,54 @@ export default function Home() {
   }
   
    const handleSignIn = async () => {
-    const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error("Error during sign-in:", error);
-      toast.error("Sign-in failed. Please try again.");
+    // This is a simplified mock sign-in for demonstration.
+    // In a real app, this would redirect to a Google OAuth flow
+    // and then communicate the result back to the client.
+    const mockUser: ClientUser = {
+      uid: 'mock-user-12345',
+      displayName: 'Test User',
+      email: 'test@example.com',
+    };
+    
+    setIsHydrating(true);
+    setUser(mockUser);
+    const userData = await getUserData(mockUser.uid);
+    if (userData) {
+      setPortfolio(userData.portfolio ?? initialPortfolio);
+      setAccessToken(userData.accessToken ?? null);
+      if (userData.messages && userData.messages.length > 0) {
+        setMessages(userData.messages);
+      } else {
+         setMessages([{
+            id: crypto.randomUUID(),
+            role: 'bot',
+            content: "Welcome back! Type 'start' or use the menu below to begin.",
+        }]);
+      }
+    } else {
+      const initialData: UserData = {
+        portfolio: initialPortfolio,
+        accessToken: null,
+        messages: initialMessages,
+      };
+      await saveUserData(mockUser.uid, initialData);
+      setMessages([{
+        id: crypto.randomUUID(),
+        role: 'bot',
+        content: "Welcome! Your new paper trading account is set up. Type 'start' or use the menu below to begin.",
+      }]);
     }
+    setIsHydrating(false);
+    toast.success("Signed in successfully!");
   };
 
   const handleSignOut = async () => {
-    try {
-      await auth.signOut();
-    } catch (error) {
-      console.error("Error during sign-out:", error);
-      toast.error("Sign-out failed. Please try again.");
-    }
+    // A simplified mock sign-out
+    setUser(null);
+    setPortfolio(initialPortfolio);
+    setAccessToken(null);
+    setMessages(initialMessages);
+    toast.success("Signed out successfully.");
   };
 
 
@@ -331,7 +369,7 @@ export default function Home() {
                     <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
                   </div>
                 ) : (
-                  <Button variant="default" size="sm" onClick={handleSignIn}>Sign In with Google</Button>
+                  <Button variant="default" size="sm" onClick={handleSignIn}>Sign In</Button>
                 )}
             </div>
           </div>
