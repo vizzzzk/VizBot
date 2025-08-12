@@ -1,8 +1,8 @@
 
 "use server";
 
+import { kv } from '@vercel/kv';
 import { getBotResponse, BotResponsePayload, Portfolio, Message } from '@/lib/bot-logic';
-import { db } from '@/lib/firebase-admin';
 
 // ===== USER DATA MANAGEMENT =====
 export interface UserData {
@@ -14,14 +14,10 @@ export interface UserData {
 export async function getUserData(uid: string): Promise<UserData | null> {
     if (!uid) return null;
     try {
-        const userRef = db.collection('users').doc(uid);
-        const doc = await userRef.get();
-        if (doc.exists) {
-            return doc.data() as UserData;
-        }
-        return null;
+        const data = await kv.get<UserData>(uid);
+        return data;
     } catch (error) {
-        console.error("Error fetching user data:", error);
+        console.error("Error fetching user data from Vercel KV:", error);
         return null;
     }
 }
@@ -29,10 +25,12 @@ export async function getUserData(uid: string): Promise<UserData | null> {
 export async function saveUserData(uid: string, data: Partial<UserData>): Promise<void> {
     if (!uid) return;
     try {
-        const userRef = db.collection('users').doc(uid);
-        await userRef.set(data, { merge: true });
+        // Vercel KV's set command will create or overwrite. To merge, we must first get the existing data.
+        const existingData = await kv.get<UserData>(uid) ?? {};
+        const newData = { ...existingData, ...data };
+        await kv.set(uid, newData);
     } catch (error) {
-        console.error("Error saving user data:", error);
+        console.error("Error saving user data to Vercel KV:", error);
     }
 }
 
@@ -64,7 +62,7 @@ export async function sendMessage(uid: string, userInput: string, currentMessage
     
     const updatedMessages = [...currentMessages, userMessage, botMessage];
 
-    // Prepare data to save to Firestore
+    // Prepare data to save to KV store
     const dataToSave: Partial<UserData> = {
       messages: updatedMessages,
     };
