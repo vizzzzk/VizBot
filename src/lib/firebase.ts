@@ -1,4 +1,3 @@
-
 // Import the functions you need from the SDKs you need
 import { initializeApp, getApp, getApps, type FirebaseApp } from "firebase/app";
 
@@ -16,23 +15,34 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-let app: FirebaseApp | undefined;
-
-// Initialize Firebase only on the client side
-if (typeof window !== "undefined") {
-  if (!getApps().length) {
-    // This configuration will be used for both local development and deployed environments.
-    // In a deployed App Hosting environment, the config object will be automatically populated.
-    // For local development, it uses the firebaseConfig object defined above from your .env.local file.
-    const config = (window as any).firebaseConfig ?? firebaseConfig;
-    if (config && config.apiKey) {
-      app = initializeApp(config);
-    } else {
-      console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
-    }
-  } else {
-    app = getApp();
+// A function to safely initialize and get the Firebase app
+const getFirebaseApp = (): FirebaseApp | undefined => {
+  // This function should only be called on the client-side.
+  if (typeof window === "undefined") {
+    return undefined;
   }
-}
+
+  // If apps are already initialized, return the default app
+  if (getApps().length > 0) {
+    return getApp();
+  }
+
+  // In a deployed App Hosting environment, `window.firebaseConfig` will be populated.
+  // For local development, it uses the firebaseConfig object defined above from your .env file.
+  const config = (window as any).firebaseConfig ?? firebaseConfig;
+
+  // Ensure the config object has the necessary keys before initializing
+  if (config && config.apiKey) {
+    return initializeApp(config);
+  } else {
+    // Log an error if the config is missing. This will show in the browser console.
+    console.error("Firebase config is missing. Please check your .env.local file or App Hosting setup.");
+    return undefined;
+  }
+};
+
+// Call the function to get the app instance.
+// This will be `undefined` on the server and the FirebaseApp instance on the client.
+const app = getFirebaseApp();
 
 export { app };
