@@ -539,7 +539,7 @@ async function findInstrumentAndOptionData(token: string | null | undefined, exp
         console.error(`Could not get option chain for expiry ${expiry}`);
         return {};
     }
-    const spotPrice = optionChain.data[0]?.underlying_spot_price;
+    const spotPrice = optionChain.data[0]?.market_data?.ltp;
     const vix = optionChain.data[0]?.vix;
     
     // Find the specific strike in the chain
@@ -891,7 +891,7 @@ export async function getBotResponse(message: string, token: string | null | und
                 return { type: 'error', message: `No option chain data found for ${expiry}.`, accessToken: token ?? undefined, portfolio };
             }
 
-            const spotPrice = optionChain.data[0]?.underlying_spot_price ?? 0;
+            const spotPrice = optionChain.data[0]?.market_data?.ltp ?? 0;
             const vix = optionChain.data[0]?.vix;
             const expDate = new Date(expiry);
             const today = new Date();

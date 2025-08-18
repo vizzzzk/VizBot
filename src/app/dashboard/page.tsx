@@ -157,7 +157,7 @@ function DashboardContent() {
     } else if (response.type === 'expiries') {
         botMessage.content = "Here are the available expiry dates for NIFTY 50.";
     } else if (response.type === 'analysis') {
-        botMessage.content = `Analysis for expiry ${response.opportunities[0]?.strike ? `around strike ${response.opportunities[0].strike}` : ''}:`;
+        botMessage.content = `Analysis for expiry ${response.expiry}:`;
     } else if (response.type === 'paper-trade' || response.type === 'portfolio' || response.type === 'close-position') {
         botMessage.content = response.message;
         botMessage.payload = undefined;
@@ -449,6 +449,3 @@ export default function Dashboard() {
         </AuthGuard>
     )
 }
-
-    
-    

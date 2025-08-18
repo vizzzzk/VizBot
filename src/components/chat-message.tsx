@@ -165,9 +165,9 @@ export default function ChatMessage({ role, content, payload, onExpirySelect, on
         return "Here are the available expiry dates for NIFTY 50.";
       }
       if (payload?.type === 'analysis') {
-         return `Analysis for expiry ${payload.opportunities[0]?.strike ? `around strike ${payload.opportunities[0].strike}` : ''}:`;
+         return `Analysis for expiry ${payload.expiry}:`;
       }
-      if (payload?.type === 'paper-trade' || payload?.type === 'portfolio' || payload?.type === 'close-position') {
+      if (payload?.type === 'paper-trade' || payload?.type === 'portfolio' || payload?.type === 'close-position' || payload?.type === 'reset') {
         return payload.message;
       }
       // Fallback to content if it's a simple string, or for user messages
@@ -175,7 +175,7 @@ export default function ChatMessage({ role, content, payload, onExpirySelect, on
   }
 
   const messageContent = isUser ? content : getBotMessageContent();
-  const messagePayload = (payload?.type === 'error' || payload?.type === 'portfolio' || payload?.type === 'paper-trade' || payload?.type === 'close-position') ? undefined : payload;
+  const messagePayload = (payload?.type === 'error' || payload?.type === 'portfolio' || payload?.type === 'paper-trade' || payload?.type === 'close-position' || payload?.type === 'reset') ? undefined : payload;
 
 
   return (

@@ -91,7 +91,3 @@ export async function sendMessage(uid: string, userInput: string, currentMessage
     return { type: 'error', message: e.message || 'An internal error occurred. Please try again later.' };
   }
 }
-
-    
-
-    
