@@ -147,8 +147,7 @@ function ChatDemo() {
                 <div className="flex items-center gap-3">
                     <Bot className="w-8 h-8 text-muted-foreground" />
                     <div>
-                        <CardTitle className="text-2xl font-bold text-foreground">VizBot Live Demo</CardTitle>
-                        <CardDescription className="text-muted-foreground">Automated Walkthrough</CardDescription>
+                        <CardTitle className="text-2xl font-bold text-foreground">Get Started</CardTitle>
                     </div>
                 </div>
             </CardHeader>
@@ -165,7 +164,7 @@ function ChatDemo() {
                     <Input
                     value=""
                     readOnly
-                    placeholder="Automated demo running..."
+                    placeholder=""
                     className="flex-1"
                     />
                     <Button type="submit" size="icon" disabled>
@@ -178,7 +177,7 @@ function ChatDemo() {
 }
 
 
-function LoginPage({ onSignIn, onGuestSignIn }: { onSignIn: () => void; onGuestSignIn: () => void; }) {
+function LoginPage({ onSignIn }: { onSignIn: () => void; }) {
   return (
     <div className="flex items-center justify-center min-h-screen bg-background font-code text-foreground">
         <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-center w-full max-w-6xl p-8">
@@ -201,11 +200,7 @@ function LoginPage({ onSignIn, onGuestSignIn }: { onSignIn: () => void; onGuestS
                 <div className="space-y-4">
                     <Button className="w-full" onClick={onSignIn}>
                         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3l-66.8 64.3c-20.3-18.4-47.9-30.7-79.3-30.7-65.4 0-120.4 53.6-120.4 120.4s55 120.4 120.4 120.4c72.6 0 106.6-58.6 112.2-87.7H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-                        Continue with Google
-                    </Button>
-                     <Button variant="secondary" className="w-full" onClick={onGuestSignIn}>
-                       <LogIn className="mr-2 h-4 w-4" />
-                        Continue as Guest
+                        Sign in with Email
                     </Button>
                 </div>
                 <p className="text-xs text-center text-muted-foreground">
@@ -249,7 +244,7 @@ export default function Home() {
                 content: "Welcome back! Type 'start' or use the menu below to begin.",
             }]);
           }
-        } else if (currentUser.uid !== 'guest-user') { // Don't create server data for guest
+        } else if (currentUser.uid !== 'demo-user-session') {
           const initialData: UserData = {
             portfolio: initialPortfolio,
             accessToken: null,
@@ -290,7 +285,7 @@ export default function Home() {
         }],
     };
 
-    if (user.uid !== 'guest-user') {
+    if (user.uid !== 'demo-user-session') {
       await saveUserData(user.uid, initialData);
     }
 
@@ -355,8 +350,8 @@ export default function Home() {
     
     const updatedMessages = [...messages, userMessage, botMessage];
 
-    // Don't save data for the guest user
-    if (user && user.uid !== 'guest-user') {
+    // Don't save data for the demo user
+    if (user && user.uid !== 'demo-user-session') {
       const dataToSave: Partial<UserData> = {
         messages: updatedMessages,
         portfolio: response.portfolio ?? portfolio,
@@ -510,20 +505,6 @@ export default function Home() {
     toast.success("Signed in successfully!");
   };
 
-  const handleGuestSignIn = () => {
-    const guestUser: ClientUser = {
-      uid: 'guest-user',
-      displayName: 'Guest User',
-      email: null,
-    };
-    localStorage.setItem('vizbot_user', JSON.stringify(guestUser));
-    setUser(guestUser);
-    setPortfolio(initialPortfolio);
-    setAccessToken(null);
-    setMessages([{ id: crypto.randomUUID(), role: 'bot', content: "Welcome, Guest! Your session is local and won't be saved." }]);
-    toast.success("Signed in as Guest.");
-  };
-
   const handleSignOut = async () => {
     localStorage.removeItem('vizbot_user');
     setUser(null);
@@ -542,7 +523,7 @@ export default function Home() {
   }
 
   if (!user) {
-    return <LoginPage onSignIn={handleSignIn} onGuestSignIn={handleGuestSignIn} />;
+    return <LoginPage onSignIn={handleSignIn} />;
   }
 
   return (
@@ -649,3 +630,5 @@ export default function Home() {
     </div>
   );
 }
+
+    
