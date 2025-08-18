@@ -12,6 +12,12 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
 };
 
+// Fail-fast check to ensure environment variables are loaded.
+if (!firebaseConfig.apiKey || !firebaseConfig.authDomain) {
+    throw new Error("Missing Firebase config. Make sure .env file is set up correctly and the dev server is restarted.");
+}
+
+
 const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Export a single shared auth instance

@@ -48,7 +48,7 @@ const errorMap: Record<string, string> = {
   'auth/too-many-requests': 'Too many attempts. Please wait and try again.',
   'auth/network-request-failed': 'Network error. Check your connection or ad blockers.',
   'auth/popup-closed-by-user': 'Sign-in popup was closed.',
-  'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'The Firebase API Key is not valid. Please check your configuration.',
+  'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'The Firebase API Key is not valid. Please check your configuration in the .env file and restart the server.',
 };
 
 function friendly(e: unknown, fallback = 'Something went wrong. Please try again.') {
