@@ -8,7 +8,6 @@ import AuthNav from '@/components/auth-nav';
 const robotoMono = Roboto_Mono({
   subsets: ['latin'],
   display: 'swap',
-  variable: '--font-roboto-mono',
 });
 
 export const metadata: Metadata = {
@@ -24,7 +23,7 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark">
-        <body className={`${robotoMono.variable} font-code antialiased`}>
+        <body className={robotoMono.className}>
           <AuthNav />
           {children}
           <Toaster />
