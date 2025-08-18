@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useAuth } from '@/lib/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -23,6 +23,7 @@ export default function LoginPage() {
       await login(email, password);
       location.assign('/dashboard');
     } catch (e: any) {
+      console.error('Login error:', e?.code, e?.message);
       setErr(e.message);
     } finally {
       setBusy(false);
@@ -36,6 +37,7 @@ export default function LoginPage() {
       await loginWithGoogle();
       location.assign('/dashboard');
     } catch (e: any) {
+      console.error('Google Login error:', e?.code, e?.message);
       setErr(e.message);
     } finally {
       setBusy(false);
@@ -83,7 +85,7 @@ export default function LoginPage() {
              </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={busy}>
+            <Button type="submit" className="w-full" disabled={busy || !email || !password}>
               {busy ? "Signing in..." : "Sign in"}
             </Button>
              <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={busy}>
