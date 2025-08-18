@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Bot, User, Loader, Rocket, HelpCircle, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen } from 'lucide-react';
+import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, LogIn, Github } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,16 +14,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
 
 // A mock user type for client-side state
-type ClientUser = {
+export type ClientUser = {
   uid: string;
   displayName: string | null;
   email: string | null;
 };
 
-const initialPortfolio: Portfolio = { 
-    positions: [], 
-    initialFunds: 400000, 
-    realizedPnL: 0, 
+const initialPortfolio: Portfolio = {
+    positions: [],
+    initialFunds: 400000,
+    realizedPnL: 0,
     blockedMargin: 0,
     winningTrades: 0,
     totalTrades: 0,
@@ -35,6 +35,38 @@ const initialMessages: Message[] = [{
     role: 'bot',
     content: "Hello! I am VizBot, your NIFTY options analysis assistant. Please sign in to begin, or type 'start' or use the menu below if you're already logged in.",
 }];
+
+function LoginPage({ onSignIn, onLiveDemo }: { onSignIn: () => void; onLiveDemo: () => void; }) {
+  return (
+    <div className="flex items-center justify-center min-h-screen bg-background font-code">
+      <div className="w-full max-w-md p-8 space-y-8">
+        <div className="text-center">
+            <div className="flex justify-center items-center gap-2 mb-4">
+               <Bot className="w-10 h-10 text-primary" />
+               <h1 className="text-4xl font-bold">VizBot</h1>
+            </div>
+          <p className="text-muted-foreground">
+            Welcome! Please sign in to access your professional options analysis dashboard.
+          </p>
+        </div>
+        <div className="space-y-4">
+            <Button className="w-full" onClick={onSignIn}>
+                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3l-66.8 64.3c-20.3-18.4-47.9-30.7-79.3-30.7-65.4 0-120.4 53.6-120.4 120.4s55 120.4 120.4 120.4c72.6 0 106.6-58.6 112.2-87.7H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
+                Continue with Google
+            </Button>
+            <Button variant="secondary" className="w-full" onClick={onLiveDemo}>
+                <LogIn className="mr-2 h-4 w-4" />
+                Live Demo
+            </Button>
+        </div>
+        <p className="text-xs text-center text-muted-foreground">
+            By continuing, you agree to our Terms of Service and Privacy Policy.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -55,8 +87,9 @@ export default function Home() {
       setIsHydrating(true);
       // For now, we'll assume a user is not logged in on initial load
       // A proper implementation would involve a server call to check session status
-      const currentUser = null; // This would be replaced with a server check
-      if (currentUser) {
+      const storedUser = localStorage.getItem('vizbot_user');
+      if (storedUser) {
+        const currentUser: ClientUser = JSON.parse(storedUser);
         setUser(currentUser);
         const userData = await getUserData(currentUser.uid);
         if (userData) {
@@ -96,7 +129,7 @@ export default function Home() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages]);
-  
+
   const resetPortfolio = async () => {
     if (!user) {
         toast.error("You must be logged in to reset the portfolio.");
@@ -106,7 +139,7 @@ export default function Home() {
         ...initialPortfolio,
         tradeHistory: [] // explicit reset of trade history
     };
-    
+
     const initialData: UserData = {
         portfolio: freshPortfolio,
         accessToken: null,
@@ -142,7 +175,7 @@ export default function Home() {
       content: '', // Content will be handled by payload renderer
       payload: response,
     };
-    
+
     if (response.type === 'error') {
         if(response.authUrl) {
            botMessage.content = (
@@ -167,7 +200,7 @@ export default function Home() {
         botMessage.payload = undefined;
     } else if (response.type === 'reset') {
        // Message is handled by the resetPortfolio function's toast and state update
-       return; 
+       return;
     }
 
     // Update client state immediately. The backend has already saved it.
@@ -180,7 +213,7 @@ export default function Home() {
 
     setMessages(prev => [...prev, userMessage, botMessage]);
   }
-  
+
   const handleSendMessage = (messageText: string) => {
     const trimmedInput = messageText.trim();
     if (!trimmedInput || isPending || !user) {
@@ -202,11 +235,11 @@ export default function Home() {
     };
     setMessages(prev => [...prev, tempUserMessage]);
     setInput('');
-    
+
     startTransition(async () => {
       // Remove the optimistic user message before processing the real response
       setMessages(prev => prev.slice(0, prev.length - 1));
-      
+
       const result = await sendMessage(user.uid, trimmedInput, messages, accessToken, portfolio);
       processAndSetMessages(trimmedInput, result);
     });
@@ -216,11 +249,11 @@ export default function Home() {
     e.preventDefault();
     handleSendMessage(input);
   };
-  
+
   const handleExpirySelect = (expiry: string) => {
       handleSendMessage(`exp:${expiry}`);
   }
-  
+
   const handleCommandClick = (command: string) => {
       if (command.startsWith('/paper') || command.startsWith('/close')) {
           setInput(command);
@@ -232,7 +265,7 @@ export default function Home() {
         handleSendMessage(command);
       }
   }
-  
+
   const handlePaperTrade = () => {
       if (!user) {
           toast.error("Please sign in to place a trade.");
@@ -261,7 +294,7 @@ export default function Home() {
 
   const exportToCSV = (data: TradeHistoryItem[]) => {
     const headers = [
-      'Trade ID', 'Instrument', 'Expiry', 'Action', 'Quantity (Lots)', 
+      'Trade ID', 'Instrument', 'Expiry', 'Action', 'Quantity (Lots)',
       'Entry Time', 'Exit Time', 'Entry Price', 'Exit Price', 'Entry Delta', 'Exit Delta',
       'Gross P&L', 'Net P&L', 'Total Costs', 'Status'
     ];
@@ -283,8 +316,8 @@ export default function Home() {
       trade.netPnl >= 0 ? 'Win' : 'Loss'
     ]);
 
-    let csvContent = "data:text/csv;charset=utf-8," 
-      + headers.join(",") + "\n" 
+    let csvContent = "data:text/csv;charset=utf-8,"
+      + headers.join(",") + "\n"
       + rows.map(e => e.join(",")).join("\n");
 
     const encodedUri = encodeURI(csvContent);
@@ -295,17 +328,20 @@ export default function Home() {
     link.click();
     document.body.removeChild(link);
   }
-  
-   const handleSignIn = async () => {
-    // This is a simplified mock sign-in for demonstration.
-    // In a real app, this would redirect to a Google OAuth flow
-    // and then communicate the result back to the client.
-    const mockUser: ClientUser = {
+
+  const handleSignIn = async (isDemo: boolean = false) => {
+    const mockUser: ClientUser = isDemo ? {
+      uid: 'demo-user-session',
+      displayName: 'Demo User',
+      email: 'demo@example.com',
+    } : {
       uid: 'mock-user-12345',
       displayName: 'Test User',
       email: 'test@example.com',
     };
-    
+
+    localStorage.setItem('vizbot_user', JSON.stringify(mockUser));
+
     setIsHydrating(true);
     setUser(mockUser);
     const userData = await getUserData(mockUser.uid);
@@ -331,15 +367,15 @@ export default function Home() {
       setMessages([{
         id: crypto.randomUUID(),
         role: 'bot',
-        content: "Welcome! Your new paper trading account is set up. Type 'start' or use the menu below to begin.",
+        content: `Welcome${isDemo ? ' to the Live Demo' : ''}! Your new paper trading account is set up. Type 'start' or use the menu below to begin.`,
       }]);
     }
     setIsHydrating(false);
-    toast.success("Signed in successfully!");
+    toast.success(isDemo ? "Live Demo Started" : "Signed in successfully!");
   };
 
   const handleSignOut = async () => {
-    // A simplified mock sign-out
+    localStorage.removeItem('vizbot_user');
     setUser(null);
     setPortfolio(initialPortfolio);
     setAccessToken(null);
@@ -347,6 +383,17 @@ export default function Home() {
     toast.success("Signed out successfully.");
   };
 
+  if (isHydrating) {
+      return (
+          <div className="flex items-center justify-center min-h-screen bg-background p-4">
+              <Loader className="animate-spin text-primary" />
+          </div>
+      );
+  }
+
+  if (!user) {
+    return <LoginPage onSignIn={() => handleSignIn(false)} onLiveDemo={() => handleSignIn(true)} />;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4 font-code">
@@ -357,44 +404,31 @@ export default function Home() {
                 <Bot className="w-8 h-8 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
-                  <CardDescription className="text-muted-foreground">Professional NIFTY Options Analysis</CardDescription>
+                  <CardDescription className="text-muted-foreground">Hey, {user.displayName || user.email}</CardDescription>
                 </div>
               </div>
                <div>
-                {isHydrating ? (
-                  <Loader className="animate-spin text-muted-foreground" />
-                ) : user ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground hidden sm:inline">{user.displayName || user.email}</span>
-                    <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
-                  </div>
-                ) : (
-                  <Button variant="default" size="sm" onClick={handleSignIn}>Sign In</Button>
-                )}
-            </div>
+                <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
+               </div>
           </div>
         </CardHeader>
         <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
-          {isHydrating ? (
-              <ChatMessage id="hydrating" role="bot" content={<div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" /> Loading your session...</div>} onExpirySelect={() => {}} onCommandClick={() => {}} />
-          ) : (
-            messages.map((msg) => (
-              <ChatMessage key={msg.id} {...msg} onExpirySelect={handleExpirySelect} onCommandClick={handleCommandClick} />
-            ))
-          )}
+          {messages.map((msg) => (
+            <ChatMessage key={msg.id} {...msg} onExpirySelect={handleExpirySelect} onCommandClick={handleCommandClick} />
+          ))}
           {isPending && (
              <ChatMessage id="thinking" role="bot" content={<div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" /> Thinking...</div>} onExpirySelect={() => {}} onCommandClick={() => {}} />
           )}
         </CardContent>
         <div className="border-t border-secondary p-4 bg-card/80 backdrop-blur-sm rounded-b-2xl">
            <div className="flex gap-2 mb-3 flex-wrap">
-              <Button variant="outline" size="sm" onClick={() => handleCommandClick('start')} disabled={isPending || !user}><Rocket /> Start</Button>
-              <Button variant="outline" size="sm" onClick={() => handleCommandClick('auth')} disabled={isPending || !user}><KeyRound /> Auth</Button>
-              <Button variant="outline" size="sm" onClick={handlePaperTrade} disabled={isPending || !user}><Newspaper /> Paper Trade</Button>
-              <Button variant="outline" size="sm" onClick={() => handleCommandClick('/portfolio')} disabled={isPending || !user}><Briefcase /> Portfolio</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCommandClick('start')} disabled={isPending}><Rocket /> Start</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCommandClick('auth')} disabled={isPending}><KeyRound /> Auth</Button>
+              <Button variant="outline" size="sm" onClick={handlePaperTrade} disabled={isPending}><Newspaper /> Paper Trade</Button>
+              <Button variant="outline" size="sm" onClick={() => handleCommandClick('/portfolio')} disabled={isPending}><Briefcase /> Portfolio</Button>
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" disabled={isPending || !user}><BookOpen/> Journal</Button>
+                  <Button variant="outline" size="sm" disabled={isPending}><BookOpen/> Journal</Button>
                 </DialogTrigger>
                 <DialogContent className="max-w-4xl bg-card border-secondary">
                   <DialogHeader>
@@ -434,7 +468,7 @@ export default function Home() {
                     </Table>
                   </div>
                    <DialogFooter>
-                     <Button 
+                     <Button
                         onClick={() => exportToCSV(portfolio.tradeHistory)}
                         disabled={!portfolio.tradeHistory || portfolio.tradeHistory.length === 0}
                       >
@@ -443,20 +477,20 @@ export default function Home() {
                   </DialogFooter>
                 </DialogContent>
               </Dialog>
-              <Button variant="outline" size="sm" onClick={() => setInput('/close ')} disabled={isPending || !user}><XCircle /> Close</Button>
-               <Button variant="outline" size="sm" onClick={resetPortfolio} disabled={isPending || !user}><RefreshCw /> Reset</Button>
+              <Button variant="outline" size="sm" onClick={() => setInput('/close ')} disabled={isPending}><XCircle /> Close</Button>
+               <Button variant="outline" size="sm" onClick={resetPortfolio} disabled={isPending}><RefreshCw /> Reset</Button>
               <Button variant="outline" size="sm" onClick={() => handleCommandClick('help')} disabled={isPending}><HelpCircle /> Help</Button>
           </div>
           <form onSubmit={handleSubmit} className="flex items-center gap-3">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder={user ? "Type your message or use the menu..." : "Please sign in to start."}
+              placeholder="Type your message or use the menu..."
               className="flex-1"
-              disabled={isPending || !user}
+              disabled={isPending}
               aria-label="Chat input"
             />
-            <Button type="submit" size="icon" disabled={!input.trim() || isPending || !user} aria-label="Send message">
+            <Button type="submit" size="icon" disabled={!input.trim() || isPending} aria-label="Send message">
               <Send className="w-5 h-5" />
             </Button>
           </form>
@@ -465,3 +499,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

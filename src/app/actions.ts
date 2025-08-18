@@ -41,10 +41,15 @@ export async function sendMessage(uid: string, userInput: string, currentMessage
   if (!userInput || typeof userInput !== 'string' || userInput.length > 500) {
     return { type: 'error', message: 'Invalid input. Please provide a valid message.' };
   }
-  
+
+  // Handle demo user specific logic
+  if (uid === 'demo-user-session' && (userInput.toLowerCase().includes('/paper') || userInput.toLowerCase().includes('/close'))) {
+    return { type: 'error', message: 'Paper trading is disabled in the Live Demo. Please sign in with your own account to use this feature.' };
+  }
+
   try {
     const botResponse = await getBotResponse(userInput, token, portfolio);
-    
+
     // Construct messages to be saved
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -56,10 +61,10 @@ export async function sendMessage(uid: string, userInput: string, currentMessage
       id: crypto.randomUUID(),
       role: 'bot',
       // We will fill content and payload on the client, but save the structure
-      content: '', 
+      content: '',
       payload: botResponse,
     };
-    
+
     const updatedMessages = [...currentMessages, userMessage, botMessage];
 
     // Prepare data to save to KV store
@@ -74,7 +79,11 @@ export async function sendMessage(uid: string, userInput: string, currentMessage
       dataToSave.accessToken = botResponse.accessToken;
     }
 
-    await saveUserData(uid, dataToSave);
+    // Do not save data for the demo user
+    if (uid !== 'demo-user-session') {
+      await saveUserData(uid, dataToSave);
+    }
+
 
     return botResponse;
   } catch (e: any) {
@@ -82,3 +91,5 @@ export async function sendMessage(uid: string, userInput: string, currentMessage
     return { type: 'error', message: e.message || 'An internal error occurred. Please try again later.' };
   }
 }
+
+    
