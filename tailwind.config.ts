@@ -11,6 +11,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ['"Roboto Mono"', 'sans-serif'],
+        code: ['"Roboto Mono"', 'monospace'],
       },
       colors: {
         background: 'hsl(var(--background))',

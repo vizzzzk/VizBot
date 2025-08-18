@@ -1,14 +1,8 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "sonner";
-import { Roboto_Mono } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs';
 import AuthNav from '@/components/auth-nav';
-
-const robotoMono = Roboto_Mono({
-  subsets: ['latin'],
-  display: 'swap',
-});
 
 export const metadata: Metadata = {
   title: 'VizBot',
@@ -21,9 +15,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
       <html lang="en" className="dark">
-        <body className={robotoMono.className}>
+        <body>
           <AuthNav />
           {children}
           <Toaster />
