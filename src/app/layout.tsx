@@ -23,8 +23,8 @@ export default function RootLayout({
 }>) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${robotoMono.variable}`}>
-        <body className="font-code antialiased">
+      <html lang="en" className="dark">
+        <body className={`${robotoMono.variable} font-code antialiased`}>
           <AuthNav />
           {children}
           <Toaster />
