@@ -12,7 +12,7 @@ import { sendMessage, getUserData, saveUserData, UserData } from '../actions';
 import { BotResponsePayload, Portfolio, TradeHistoryItem, Message, Expiry } from '@/lib/bot-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
-import { useAuth } from '@/lib/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/AuthGuard';
 
 

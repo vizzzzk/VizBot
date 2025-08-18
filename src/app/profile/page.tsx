@@ -13,7 +13,7 @@ export default function ProfilePage() {
             <CardHeader>
                 <CardTitle className="text-2xl">Profile</CardTitle>
                  <CardDescription>Your user information.</CardDescription>
-            </CardHeader>
+            </Header>
             <CardContent className="space-y-2">
                 <p><b>Email:</b> {user?.email}</p>
                 <p><b>Name:</b> {user?.displayName ?? '—'}</p>

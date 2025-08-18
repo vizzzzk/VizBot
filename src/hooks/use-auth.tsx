@@ -48,47 +48,35 @@ const errorMap: Record<string, string> = {
   'auth/too-many-requests': 'Too many attempts. Please wait and try again.',
   'auth/network-request-failed': 'Network error. Check your connection or ad blockers.',
   'auth/popup-closed-by-user': 'Sign-in popup was closed.',
+  'auth/api-key-not-valid.-please-pass-a-valid-api-key.': 'The Firebase API Key is not valid. Please check your configuration.',
 };
 
 function friendly(e: unknown, fallback = 'Something went wrong. Please try again.') {
   const code = (e as any)?.code as string | undefined;
   console.error('Auth error:', code, (e as any)?.message);
-  return (code && errorMap[code]) || fallback;
+  return (code && errorMap[code]) || (e as any).message || fallback;
 }
 
 
-export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User|null>(null);
   const [loading, setLoading] = useState(true);
-  const [mountId] = useState(() => Math.random().toString(36).slice(2,8));
 
   useEffect(() => {
-    console.log(`[Auth DBG ${mountId}] provider mounted`);
-    console.log('[Auth DBG] firebase config check:', {
-      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.slice(0,6),
-      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
-
     const unsub = onAuthStateChanged(auth, (u) => {
-      console.log(`[Auth DBG ${mountId}] onAuthStateChanged ->`, u ? { uid: u.uid, email: u.email } : null);
       setUser(u);
       setLoading(false);
     }, (err) => {
-      console.error(`[Auth DBG ${mountId}] onAuthStateChanged ERROR:`, err);
+      console.error(`onAuthStateChanged ERROR:`, err);
       setLoading(false);
     });
 
-    // Safety valve: if nothing fires in 5s, stop loading to reveal the page + console
-    const timer = setTimeout(() => {
-      if (loading) {
-        console.warn(`[Auth DBG ${mountId}] timeout: forcing loading=false (listener didn’t fire)`);
-        setLoading(false);
-      }
-    }, 5000);
+    const unsub2 = onIdTokenChanged(auth, async u => {
+      // placeholder for token refresh logic
+    });
 
-    return () => { clearTimeout(timer); unsub(); };
-  }, [mountId]); // eslint-disable-line
+    return () => { unsub(); unsub2(); };
+  }, []);
 
   const signup = async (email: string, password: string, displayName?: string) => {
     try {
@@ -98,7 +86,6 @@ export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) =
       }
       await sendEmailVerification(cred.user);
     } catch (e:any) {
-      console.error('[Auth DBG] signup error:', e.code, e.message);
       throw new Error(friendly(e));
     }
   };
@@ -106,7 +93,6 @@ export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) =
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (e:any) {
-      console.error('[Auth DBG] login error:', e.code, e.message);
       throw new Error(friendly(e));
     }
   };
@@ -124,7 +110,6 @@ export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) =
     try {
       await signOut(auth);
     } catch (e) {
-      console.error('[Auth DBG] logout error:', e);
       throw new Error(friendly(e, 'Could not log out.'));
     }
   };
@@ -132,8 +117,7 @@ export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) =
   const resetPassword = async (email: string) => {
     try {
       await sendPasswordResetEmail(auth, email);
-    } catch (e) {
-      console.error('[Auth DBG] reset error:', e);
+    } catch (e: any) {
        throw new Error(friendly(e, 'Could not send reset link.'));
     }
   };
@@ -142,11 +126,7 @@ export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) =
 
   return (
     <AuthContext.Provider value={value}>
-      {/* Tiny on-screen tracer (remove later) */}
-      <div style={{position:'fixed',bottom:8,right:8,background:'#0008',color:'#fff',fontSize:12,padding:'6px 8px',borderRadius:6,zIndex:9999}}>
-        loading:{String(loading)} · user:{user?.uid ?? 'null'}
-      </div>
-      {loading ? <div className="grid min-h-[50vh] place-items-center">Loading…</div> : children}
+      {children}
     </AuthContext.Provider>
   );
 };
