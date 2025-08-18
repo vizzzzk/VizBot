@@ -2,23 +2,18 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, LogIn, Github, HelpCircle } from 'lucide-react';
+import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from "sonner";
 import ChatMessage from '@/components/chat-message';
-import { sendMessage, getUserData, saveUserData, UserData } from './actions';
+import { sendMessage, getUserData, saveUserData, UserData } from '../actions';
 import { BotResponsePayload, Portfolio, TradeHistoryItem, Message, Expiry } from '@/lib/bot-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
+import { useUser } from '@clerk/nextjs';
 
-// A mock user type for client-side state
-export type ClientUser = {
-  uid: string;
-  displayName: string | null;
-  email: string | null;
-};
 
 const initialPortfolio: Portfolio = {
     positions: [],
@@ -33,192 +28,16 @@ const initialPortfolio: Portfolio = {
 const initialMessages: Message[] = [{
     id: crypto.randomUUID(),
     role: 'bot',
-    content: "Hello! I am VizBot, your NIFTY options analysis assistant. Please sign in to begin, or type 'start' or use the menu below if you're already logged in.",
+    content: "Hello! I am VizBot, your NIFTY options analysis assistant. Type 'start' or use the menu below to begin.",
 }];
 
-const demoInitialMessages: Message[] = [{
-  id: 'demo-1',
-  role: 'bot',
-  content: "Hello! I'm VizBot, your trading analysis assistant. Watch this quick demo to see how I work.",
-}];
 
-const demoSequence: (Message | { type: 'user_input', content: string })[] = [
-  { type: 'user_input', content: 'start' },
-  {
-    id: 'demo-2',
-    role: 'bot',
-    content: "Here are the available expiry dates for NIFTY 50.",
-    payload: {
-      type: 'expiries',
-      expiries: [
-        { value: '2024-09-26', label: '2024-09-26 (M) DTE: 1' },
-        { value: '2024-10-03', label: '2024-10-03 (W) DTE: 8' },
-        { value: '2024-10-10', label: '2024-10-10 (W) DTE: 15' },
-      ] as Expiry[],
-    }
-  },
-  { type: 'user_input', content: 'exp:2024-09-26' },
-  {
-    id: 'demo-3',
-    role: 'bot',
-    content: "Analysis for expiry around strike 23500:",
-    payload: {
-        type: 'analysis',
-        spotPrice: 23516.80,
-        dte: 1,
-        lotSize: 50,
-        expiry: "2024-09-26",
-        timestamp: new Date().toLocaleTimeString(),
-        marketAnalysis: {
-            pcr_oi: 0.85,
-            pcr_volume: 0.92,
-            sentiment: "Neutral",
-            confidence: "Medium",
-            interpretation: "Market sentiment is neutral, leaning slightly bullish.",
-            tradingBias: "Focus on non-directional or range-bound strategies."
-        },
-        opportunities: [],
-        qualifiedStrikes: { ce: [], pe: [] },
-        tradeRecommendation: {
-            reason: "Based on the analysis, a short strangle strategy is recommended.",
-            tradeCommand: "/paper CE 23700 SELL 1 45.50"
-        }
-    }
-  },
-  { type: 'user_input', content: '/paper CE 23700 SELL 1 45.50' },
-  {
-    id: 'demo-4',
-    role: 'bot',
-    content: "✅ Paper trade executed successfully!",
-  }
-];
-
-
-function ChatDemo() {
-    const [messages, setMessages] = useState<Message[]>(demoInitialMessages);
-    const [isTyping, setIsTyping] = useState(false);
-    const chatContainerRef = useRef<HTMLDivElement>(null);
-    const sequenceIndex = useRef(0);
-
-    useEffect(() => {
-        if (chatContainerRef.current) {
-            chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-        }
-    }, [messages]);
-
-    useEffect(() => {
-        const processSequence = () => {
-            if (sequenceIndex.current >= demoSequence.length) {
-                // Restart demo after a delay
-                setTimeout(() => {
-                    setMessages(demoInitialMessages);
-                    sequenceIndex.current = 0;
-                    setTimeout(processSequence, 2000);
-                }, 5000);
-                return;
-            }
-
-            const nextItem = demoSequence[sequenceIndex.current];
-            sequenceIndex.current++;
-
-            if (nextItem.type === 'user_input') {
-                setIsTyping(true);
-                // Simulate user typing
-                setTimeout(() => {
-                    setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'user', content: nextItem.content }]);
-                    setIsTyping(false);
-                    // Wait before showing bot response
-                    setTimeout(processSequence, 1500);
-                }, 2000);
-            } else {
-                // Add bot message
-                setMessages(prev => [...prev, nextItem as Message]);
-                setTimeout(processSequence, 2500);
-            }
-        };
-
-        const timeoutId = setTimeout(processSequence, 2000);
-        return () => clearTimeout(timeoutId);
-    }, [messages.length]); // Rerun when messages change to continue sequence
-
-    return (
-        <Card className="w-full h-full flex flex-col shadow-2xl rounded-2xl bg-card border-secondary overflow-hidden">
-            <CardHeader className="border-b border-secondary">
-                <div className="flex items-center gap-3">
-                    <Bot className="w-8 h-8 text-muted-foreground" />
-                    <div>
-                        <CardTitle className="text-2xl font-bold text-foreground">Get Started</CardTitle>
-                    </div>
-                </div>
-            </CardHeader>
-            <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
-                {messages.map((msg) => (
-                    <ChatMessage key={msg.id} {...msg} onExpirySelect={() => { }} onCommandClick={() => { }} />
-                ))}
-                {isTyping && (
-                    <ChatMessage id="typing" role="user" content={<div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" /> Typing...</div>} onExpirySelect={() => { }} onCommandClick={() => { }} />
-                )}
-            </CardContent>
-            <div className="border-t border-secondary p-4 bg-card/80 backdrop-blur-sm rounded-b-2xl">
-                 <div className="flex items-center gap-3">
-                    <Input
-                    value=""
-                    readOnly
-                    placeholder=""
-                    className="flex-1"
-                    />
-                    <Button type="submit" size="icon" disabled>
-                    <Send className="w-5 h-5" />
-                    </Button>
-                </div>
-            </div>
-        </Card>
-    );
-}
-
-
-function LoginPage({ onSignIn }: { onSignIn: () => void; }) {
-  return (
-    <div className="flex items-center justify-center min-h-screen bg-background font-code text-foreground">
-        <div className="grid md:grid-cols-2 gap-8 lg:gap-16 items-center w-full max-w-6xl p-8">
-            {/* Left side: Demo */}
-            <div className="h-[80vh] hidden md:flex">
-               <ChatDemo />
-            </div>
-
-            {/* Right side: Auth */}
-            <div className="w-full max-w-md p-8 space-y-8 mx-auto">
-                 <div className="text-center">
-                    <div className="flex justify-center items-center gap-2 mb-4">
-                        <Bot className="w-10 h-10 text-primary" />
-                        <h1 className="text-4xl font-bold">VizBot</h1>
-                    </div>
-                    <p className="text-muted-foreground">
-                        Welcome! Please sign in to access your professional options analysis dashboard.
-                    </p>
-                </div>
-                <div className="space-y-4">
-                    <Button className="w-full" onClick={onSignIn}>
-                        <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512"><path fill="currentColor" d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 126 21.2 172.9 60.3l-66.8 64.3c-20.3-18.4-47.9-30.7-79.3-30.7-65.4 0-120.4 53.6-120.4 120.4s55 120.4 120.4 120.4c72.6 0 106.6-58.6 112.2-87.7H248v-85.3h236.1c2.3 12.7 3.9 26.9 3.9 41.4z"></path></svg>
-                        Sign in with Email
-                    </Button>
-                </div>
-                <p className="text-xs text-center text-muted-foreground">
-                    By continuing, you agree to our Terms of Service and Privacy Policy.
-                </p>
-            </div>
-        </div>
-    </div>
-  );
-}
-
-
-export default function Home() {
+export default function Dashboard() {
+  const { user } = useUser();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [portfolio, setPortfolio] = useState<Portfolio>(initialPortfolio);
-  const [user, setUser] = useState<ClientUser | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isHydrating, setIsHydrating] = useState(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -226,38 +45,35 @@ export default function Home() {
   // Auth state listener and data fetcher
   useEffect(() => {
     const checkUserSession = async () => {
+      if (!user) return;
+
       setIsHydrating(true);
-      const storedUser = localStorage.getItem('vizbot_user');
-      if (storedUser) {
-        const currentUser: ClientUser = JSON.parse(storedUser);
-        setUser(currentUser);
-        const userData = await getUserData(currentUser.uid);
-        if (userData) {
-          setPortfolio(userData.portfolio ?? initialPortfolio);
-          setAccessToken(userData.accessToken ?? null);
-          if (userData.messages && userData.messages.length > 0) {
-            setMessages(userData.messages);
-          } else {
-             setMessages([{
-                id: crypto.randomUUID(),
-                role: 'bot',
-                content: "Welcome back! Type 'start' or use the menu below to begin.",
-            }]);
-          }
-        } else if (currentUser.uid !== 'demo-user-session') {
-          const initialData: UserData = {
-            portfolio: initialPortfolio,
-            accessToken: null,
-            messages: initialMessages,
-          };
-          await saveUserData(currentUser.uid, initialData);
+      const userData = await getUserData(user.id);
+      if (userData) {
+        setPortfolio(userData.portfolio ?? initialPortfolio);
+        setAccessToken(userData.accessToken ?? null);
+        if (userData.messages && userData.messages.length > 0) {
+          setMessages(userData.messages);
+        } else {
+           setMessages([{
+              id: crypto.randomUUID(),
+              role: 'bot',
+              content: "Welcome back! Type 'start' or use the menu below to begin.",
+          }]);
         }
+      } else {
+        const initialData: UserData = {
+          portfolio: initialPortfolio,
+          accessToken: null,
+          messages: initialMessages,
+        };
+        await saveUserData(user.id, initialData);
       }
       setIsHydrating(false);
     };
 
     checkUserSession();
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -285,9 +101,8 @@ export default function Home() {
         }],
     };
 
-    if (user.uid !== 'demo-user-session') {
-      await saveUserData(user.uid, initialData);
-    }
+    await saveUserData(user.id, initialData);
+
 
     // Update client state immediately
     setPortfolio(freshPortfolio);
@@ -350,15 +165,15 @@ export default function Home() {
     
     const updatedMessages = [...messages, userMessage, botMessage];
 
-    // Don't save data for the demo user
-    if (user && user.uid !== 'demo-user-session') {
+    if (user) {
       const dataToSave: Partial<UserData> = {
         messages: updatedMessages,
         portfolio: response.portfolio ?? portfolio,
         accessToken: response.accessToken ?? accessToken
       };
-      saveUserData(user.uid, dataToSave);
+      saveUserData(user.id, dataToSave);
     }
+
 
     setMessages(updatedMessages);
   }
@@ -389,7 +204,7 @@ export default function Home() {
       // Remove the optimistic user message before processing the real response
       setMessages(prev => prev.slice(0, prev.length - 1));
 
-      const result = await sendMessage(user.uid, trimmedInput, messages, accessToken, portfolio);
+      const result = await sendMessage(user.id, trimmedInput, messages, accessToken, portfolio);
       processAndSetMessages(trimmedInput, result);
     });
   }
@@ -478,43 +293,7 @@ export default function Home() {
     document.body.removeChild(link);
   }
 
-  const handleSignIn = async () => {
-    // This is a placeholder for a real Google Sign-In flow
-    const mockUser: ClientUser = {
-      uid: 'mock-user-12345', // A real implementation would get this from Firebase Auth
-      displayName: 'Test User',
-      email: 'test@example.com',
-    };
-
-    localStorage.setItem('vizbot_user', JSON.stringify(mockUser));
-    setUser(mockUser);
-    setIsHydrating(true);
-    const userData = await getUserData(mockUser.uid);
-    if (userData) {
-      setPortfolio(userData.portfolio ?? initialPortfolio);
-      setAccessToken(userData.accessToken ?? null);
-      setMessages(userData.messages && userData.messages.length > 0 ? userData.messages : [{ id: crypto.randomUUID(), role: 'bot', content: "Welcome back!" }]);
-    } else {
-      const initialData: UserData = { portfolio: initialPortfolio, accessToken: null, messages: initialMessages };
-      await saveUserData(mockUser.uid, initialData);
-      setPortfolio(initialPortfolio);
-      setAccessToken(null);
-      setMessages(initialMessages);
-    }
-    setIsHydrating(false);
-    toast.success("Signed in successfully!");
-  };
-
-  const handleSignOut = async () => {
-    localStorage.removeItem('vizbot_user');
-    setUser(null);
-    setPortfolio(initialPortfolio);
-    setAccessToken(null);
-    setMessages(initialMessages);
-    toast.success("Signed out successfully.");
-  };
-
-  if (isHydrating) {
+  if (isHydrating || !user) {
       return (
           <div className="flex items-center justify-center min-h-screen bg-background p-4">
               <Loader className="animate-spin text-primary" />
@@ -522,9 +301,6 @@ export default function Home() {
       );
   }
 
-  if (!user) {
-    return <LoginPage onSignIn={handleSignIn} />;
-  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4 font-code">
@@ -535,12 +311,9 @@ export default function Home() {
                 <Bot className="w-8 h-8 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
-                  <CardDescription className="text-muted-foreground">Hey, {user.displayName || user.email}</CardDescription>
+                  <CardDescription className="text-muted-foreground">Hey, {user.firstName || user.username}</CardDescription>
                 </div>
               </div>
-               <div>
-                <Button variant="outline" size="sm" onClick={handleSignOut}>Sign Out</Button>
-               </div>
           </div>
         </CardHeader>
         <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -630,5 +403,3 @@ export default function Home() {
     </div>
   );
 }
-
-    

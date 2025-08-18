@@ -14,3 +14,4 @@ runConfig:
 secretEnvironmentVariables:
   - secret: UPSTOX_API_KEY
   - secret: UPSTOX_API_SECRET
+  - secret: CLERK_SECRET_KEY

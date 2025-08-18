@@ -2,6 +2,8 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "sonner";
 import { Roboto_Mono } from 'next/font/google';
+import { ClerkProvider } from '@clerk/nextjs';
+import AuthNav from '@/components/auth-nav';
 
 const robotoMono = Roboto_Mono({
   subsets: ['latin'],
@@ -20,11 +22,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${robotoMono.variable}`}>
-      <body className="font-code antialiased">
-        {children}
-        <Toaster />
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en" className={`${robotoMono.variable}`}>
+        <body className="font-code antialiased">
+          <AuthNav />
+          {children}
+          <Toaster />
+        </body>
+      </html>
+    </ClerkProvider>
   );
 }
