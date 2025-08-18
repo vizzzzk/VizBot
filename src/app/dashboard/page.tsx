@@ -2,7 +2,8 @@
 'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, HelpCircle } from 'lucide-react';
+import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, HelpCircle, MoreVertical } from 'lucide-react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -14,6 +15,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/AuthGuard';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 
 const initialPortfolio: Portfolio = {
@@ -34,7 +43,7 @@ const initialMessages: Message[] = [{
 
 
 function DashboardContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, logout, loading: authLoading } = useAuth();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -312,9 +321,25 @@ function DashboardContent() {
                 <Bot className="w-8 h-8 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
-                  <CardDescription className="text-muted-foreground">Hey, {user?.email}</CardDescription>
+                  <CardDescription className="text-muted-foreground">Hey, {user?.displayName ?? user?.email}</CardDescription>
                 </div>
               </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreVertical />
+                    <span className="sr-only">Open user menu</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => logout()}>Log out</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
           </div>
         </CardHeader>
         <CardContent ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-6">
@@ -412,3 +437,5 @@ export default function Dashboard() {
         </AuthGuard>
     )
 }
+
+    
