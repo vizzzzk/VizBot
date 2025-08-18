@@ -1,8 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "sonner";
-import AuthNav from '@/components/auth-nav';
-import { AuthProvider } from '@/hooks/use-auth';
+import { AuthProvider } from '@/lib/use-auth';
 
 
 export const metadata: Metadata = {
@@ -19,7 +18,6 @@ export default function RootLayout({
     <AuthProvider>
       <html lang="en" className="dark">
         <body className='font-code'>
-          <AuthNav />
           {children}
           <Toaster />
         </body>

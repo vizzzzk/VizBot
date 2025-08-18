@@ -1,5 +1,5 @@
 
-"use client";
+'use client';
 
 import { useState, useRef, useEffect, useTransition } from 'react';
 import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, HelpCircle } from 'lucide-react';
@@ -12,8 +12,8 @@ import { sendMessage, getUserData, saveUserData, UserData } from '../actions';
 import { BotResponsePayload, Portfolio, TradeHistoryItem, Message, Expiry } from '@/lib/bot-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
-import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/use-auth';
+import AuthGuard from '@/components/AuthGuard';
 
 
 const initialPortfolio: Portfolio = {
@@ -33,9 +33,8 @@ const initialMessages: Message[] = [{
 }];
 
 
-export default function Dashboard() {
+function DashboardContent() {
   const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -44,13 +43,9 @@ export default function Dashboard() {
   const [isHydrating, setIsHydrating] = useState(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Auth state listener and data fetcher
+  // Data fetcher
   useEffect(() => {
-    if (authLoading) return; // Wait for auth state to be determined
-    if (!user) {
-      router.push('/sign-in'); // Redirect if not logged in
-      return;
-    }
+    if (!user) return;
 
     const checkUserSession = async () => {
       setIsHydrating(true);
@@ -79,7 +74,7 @@ export default function Dashboard() {
     };
 
     checkUserSession();
-  }, [user, authLoading, router]);
+  }, [user]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -299,7 +294,7 @@ export default function Dashboard() {
     document.body.removeChild(link);
   }
 
-  if (authLoading || isHydrating || !user) {
+  if (authLoading || isHydrating) {
       return (
           <div className="flex items-center justify-center min-h-screen bg-background p-4">
               <Loader className="animate-spin text-primary" />
@@ -317,7 +312,7 @@ export default function Dashboard() {
                 <Bot className="w-8 h-8 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
-                  <CardDescription className="text-muted-foreground">Hey, {user.email}</CardDescription>
+                  <CardDescription className="text-muted-foreground">Hey, {user?.email}</CardDescription>
                 </div>
               </div>
           </div>
@@ -408,4 +403,12 @@ export default function Dashboard() {
       </Card>
     </div>
   );
+}
+
+export default function Dashboard() {
+    return (
+        <AuthGuard>
+            <DashboardContent />
+        </AuthGuard>
+    )
 }
