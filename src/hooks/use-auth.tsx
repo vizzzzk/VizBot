@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {loading ? <div className="grid min-h-[50vh] place-items-center">Loading...</div> : children}
+      {children}
     </AuthContext.Provider>
   );
 };
