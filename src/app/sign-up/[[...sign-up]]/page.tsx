@@ -78,7 +78,16 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {err && <p className="text-sm text-destructive">{err}</p>}
+            {err && (
+              <div className="text-sm text-destructive">
+                {err}
+                {err.includes('already registered') && (
+                  <Link href="/sign-in" className="underline ml-1 font-bold">
+                    Sign in instead.
+                  </Link>
+                )}
+              </div>
+            )}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
             <Button type="submit" className="w-full" disabled={busy || !email || !password || !name}>
