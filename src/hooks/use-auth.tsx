@@ -25,6 +25,7 @@ type AuthContextType = {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  updateUserProfile: (profileData: { displayName?: string, photoURL?: string }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -35,6 +36,7 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   logout: async () => {},
   resetPassword: async () => {},
+  updateUserProfile: async () => {},
 });
 
 const errorMap: Record<string, string> = {
@@ -121,8 +123,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
        throw new Error(friendly(e, 'Could not send reset link.'));
     }
   };
+  
+  const updateUserProfile = async (profileData: { displayName?: string, photoURL?: string }) => {
+    if (!auth.currentUser) {
+      throw new Error("You must be logged in to update your profile.");
+    }
+    try {
+      await updateProfile(auth.currentUser, profileData);
+      // Force a refresh of the user object to get the latest data
+      setUser(auth.currentUser);
+    } catch (error) {
+      throw new Error(friendly(error, "Failed to update profile."));
+    }
+  };
 
-  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle }), [user, loading]);
+  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle, updateUserProfile }), [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>
