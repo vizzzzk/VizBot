@@ -3,7 +3,7 @@
 
 import { ReactNode, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useAuth } from '@/lib/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();

@@ -1,7 +1,7 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "sonner";
-import { AuthProvider } from '@/lib/use-auth';
+import { DebugAuthProvider } from '@/hooks/use-auth';
 
 
 export const metadata: Metadata = {
@@ -17,10 +17,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body>
-        <AuthProvider>
+        <DebugAuthProvider>
           {children}
           <Toaster />
-        </AuthProvider>
+        </DebugAuthProvider>
       </body>
     </html>
   );

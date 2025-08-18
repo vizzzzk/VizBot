@@ -1,5 +1,5 @@
 'use client';
-import { useAuth } from '@/lib/use-auth';
+import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/AuthGuard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';

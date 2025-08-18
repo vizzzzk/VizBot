@@ -56,28 +56,39 @@ function friendly(e: unknown, fallback = 'Something went wrong. Please try again
   return (code && errorMap[code]) || fallback;
 }
 
-export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
 
-  // Keep auth state in sync and refresh ID token
+export const DebugAuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const [user, setUser] = useState<User|null>(null);
+  const [loading, setLoading] = useState(true);
+  const [mountId] = useState(() => Math.random().toString(36).slice(2,8));
+
   useEffect(() => {
-    const unsub1 = onAuthStateChanged(auth, u => {
+    console.log(`[Auth DBG ${mountId}] provider mounted`);
+    console.log('[Auth DBG] firebase config check:', {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY?.slice(0,6),
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+    });
+
+    const unsub = onAuthStateChanged(auth, (u) => {
+      console.log(`[Auth DBG ${mountId}] onAuthStateChanged ->`, u ? { uid: u.uid, email: u.email } : null);
       setUser(u);
+      setLoading(false);
+    }, (err) => {
+      console.error(`[Auth DBG ${mountId}] onAuthStateChanged ERROR:`, err);
       setLoading(false);
     });
 
-    const unsub2 = onIdTokenChanged(auth, async u => {
-      // If you need a fresh token for API calls:
-      // const token = u ? await u.getIdToken() : null;
-      // send token to your backend here if needed
-    });
+    // Safety valve: if nothing fires in 5s, stop loading to reveal the page + console
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.warn(`[Auth DBG ${mountId}] timeout: forcing loading=false (listener didn’t fire)`);
+        setLoading(false);
+      }
+    }, 5000);
 
-    return () => {
-      unsub1();
-      unsub2();
-    };
-  }, []);
+    return () => { clearTimeout(timer); unsub(); };
+  }, [mountId]); // eslint-disable-line
 
   const signup = async (email: string, password: string, displayName?: string) => {
     try {
@@ -85,22 +96,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (displayName) {
         await updateProfile(cred.user, { displayName });
       }
-      // Optional but recommended:
       await sendEmailVerification(cred.user);
-    } catch (e) {
+    } catch (e:any) {
+      console.error('[Auth DBG] signup error:', e.code, e.message);
       throw new Error(friendly(e));
     }
   };
-
   const login = async (email: string, password: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
-    } catch (e) {
+    } catch (e:any) {
+      console.error('[Auth DBG] login error:', e.code, e.message);
       throw new Error(friendly(e));
     }
   };
 
-  const loginWithGoogle = async () => {
+   const loginWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
@@ -109,31 +120,33 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const resetPassword = async (email: string) => {
-    try {
-      await sendPasswordResetEmail(auth, email);
-    } catch (e) {
-      throw new Error(friendly(e, 'Could not send reset link.'));
-    }
-  };
-
   const logout = async () => {
     try {
       await signOut(auth);
     } catch (e) {
+      console.error('[Auth DBG] logout error:', e);
       throw new Error(friendly(e, 'Could not log out.'));
     }
   };
 
-  const value = useMemo(
-    () => ({ user, loading, signup, login, loginWithGoogle, logout, resetPassword }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, loading]
-  );
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+    } catch (e) {
+      console.error('[Auth DBG] reset error:', e);
+       throw new Error(friendly(e, 'Could not send reset link.'));
+    }
+  };
+
+  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle }), [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {/* Tiny on-screen tracer (remove later) */}
+      <div style={{position:'fixed',bottom:8,right:8,background:'#0008',color:'#fff',fontSize:12,padding:'6px 8px',borderRadius:6,zIndex:9999}}>
+        loading:{String(loading)} · user:{user?.uid ?? 'null'}
+      </div>
+      {loading ? <div className="grid min-h-[50vh] place-items-center">Loading…</div> : children}
     </AuthContext.Provider>
   );
 };
