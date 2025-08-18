@@ -13,10 +13,8 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   signOut,
-  updateProfile,
 } from 'firebase/auth';
-import { auth, storage } from '@/lib/firebase';
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
+import { auth } from '@/lib/firebase';
 
 type AuthContextType = {
   user: User | null;
@@ -26,8 +24,6 @@ type AuthContextType = {
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
-  updateUserProfile: (profileData: { displayName?: string, photoURL?: string }) => Promise<void>;
-  updateUserProfilePicture: (file: File) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -38,8 +34,6 @@ const AuthContext = createContext<AuthContextType>({
   loginWithGoogle: async () => {},
   logout: async () => {},
   resetPassword: async () => {},
-  updateUserProfile: async () => {},
-  updateUserProfilePicture: async () => {},
 });
 
 const errorMap: Record<string, string> = {
@@ -69,7 +63,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
+      // Create a new User object to force re-renders when profile updates
+      setUser(u ? { ...u } : null);
       setLoading(false);
     }, (err) => {
       console.error(`onAuthStateChanged ERROR:`, err);
@@ -77,7 +72,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     const unsub2 = onIdTokenChanged(auth, async u => {
-      // placeholder for token refresh logic
+       if (u) {
+         // Create a new User object to force re-renders when profile updates
+         setUser({ ...u });
+       } else {
+         setUser(null);
+       }
     });
 
     return () => { unsub(); unsub2(); };
@@ -85,15 +85,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signup = async (email: string, password: string, displayName?: string) => {
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
+      const { user: newUser } = await createUserWithEmailAndPassword(auth, email, password);
+      // Directly call Firebase's updateProfile after signup
       if (displayName) {
-        await updateProfile(cred.user, { displayName });
+        await updateProfile(newUser, { displayName });
       }
-      await sendEmailVerification(cred.user);
+      await sendEmailVerification(newUser);
+      setUser({ ...newUser }); // Update state
     } catch (e:any) {
       throw new Error(friendly(e));
     }
   };
+
   const login = async (email: string, password: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
@@ -126,35 +129,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
        throw new Error(friendly(e, 'Could not send reset link.'));
     }
   };
-  
-  const updateUserProfile = async (profileData: { displayName?: string, photoURL?: string }) => {
-    if (!auth.currentUser) {
-      throw new Error("You must be logged in to update your profile.");
-    }
-    try {
-      await updateProfile(auth.currentUser, profileData);
-      // Force a refresh of the user object to get the latest data
-      setUser(auth.currentUser);
-    } catch (error) {
-      throw new Error(friendly(error, "Failed to update profile."));
-    }
-  };
 
-  const updateUserProfilePicture = async (file: File) => {
-    if (!auth.currentUser) {
-      throw new Error("You must be logged in to update your profile picture.");
-    }
-    try {
-      const storageRef = ref(storage, `profile-pictures/${auth.currentUser.uid}`);
-      await uploadBytes(storageRef, file);
-      const photoURL = await getDownloadURL(storageRef);
-      await updateUserProfile({ photoURL });
-    } catch (error) {
-       throw new Error(friendly(error, "Failed to upload profile picture."));
-    }
-  }
-
-  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle, updateUserProfile, updateUserProfilePicture }), [user, loading]);
+  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle }), [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>
