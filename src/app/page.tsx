@@ -173,8 +173,11 @@ export default function Home() {
                     </p>
                 </div>
                 <div className="space-y-4">
-                    <Button asChild className="w-full">
-                        <Link href="/dashboard">Get Started</Link>
+                     <Button asChild className="w-full">
+                        <Link href="/sign-in">Sign In</Link>
+                    </Button>
+                     <Button asChild variant="secondary" className="w-full">
+                        <Link href="/sign-up">Create an Account</Link>
                     </Button>
                 </div>
                 <p className="text-xs text-center text-muted-foreground">

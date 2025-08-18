@@ -12,7 +12,8 @@ import { sendMessage, getUserData, saveUserData, UserData } from '../actions';
 import { BotResponsePayload, Portfolio, TradeHistoryItem, Message, Expiry } from '@/lib/bot-logic';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHeader, TableRow, TableHead } from '@/components/ui/table';
-import { useUser } from '@clerk/nextjs';
+import { useAuth } from '@/hooks/use-auth';
+import { useRouter } from 'next/navigation';
 
 
 const initialPortfolio: Portfolio = {
@@ -33,7 +34,8 @@ const initialMessages: Message[] = [{
 
 
 export default function Dashboard() {
-  const { user } = useUser();
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -44,11 +46,15 @@ export default function Dashboard() {
 
   // Auth state listener and data fetcher
   useEffect(() => {
-    const checkUserSession = async () => {
-      if (!user) return;
+    if (authLoading) return; // Wait for auth state to be determined
+    if (!user) {
+      router.push('/sign-in'); // Redirect if not logged in
+      return;
+    }
 
+    const checkUserSession = async () => {
       setIsHydrating(true);
-      const userData = await getUserData(user.id);
+      const userData = await getUserData(user.uid);
       if (userData) {
         setPortfolio(userData.portfolio ?? initialPortfolio);
         setAccessToken(userData.accessToken ?? null);
@@ -67,13 +73,13 @@ export default function Dashboard() {
           accessToken: null,
           messages: initialMessages,
         };
-        await saveUserData(user.id, initialData);
+        await saveUserData(user.uid, initialData);
       }
       setIsHydrating(false);
     };
 
     checkUserSession();
-  }, [user]);
+  }, [user, authLoading, router]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -101,7 +107,7 @@ export default function Dashboard() {
         }],
     };
 
-    await saveUserData(user.id, initialData);
+    await saveUserData(user.uid, initialData);
 
 
     // Update client state immediately
@@ -171,7 +177,7 @@ export default function Dashboard() {
         portfolio: response.portfolio ?? portfolio,
         accessToken: response.accessToken ?? accessToken
       };
-      saveUserData(user.id, dataToSave);
+      saveUserData(user.uid, dataToSave);
     }
 
 
@@ -204,7 +210,7 @@ export default function Dashboard() {
       // Remove the optimistic user message before processing the real response
       setMessages(prev => prev.slice(0, prev.length - 1));
 
-      const result = await sendMessage(user.id, trimmedInput, messages, accessToken, portfolio);
+      const result = await sendMessage(user.uid, trimmedInput, messages, accessToken, portfolio);
       processAndSetMessages(trimmedInput, result);
     });
   }
@@ -293,7 +299,7 @@ export default function Dashboard() {
     document.body.removeChild(link);
   }
 
-  if (isHydrating || !user) {
+  if (authLoading || isHydrating || !user) {
       return (
           <div className="flex items-center justify-center min-h-screen bg-background p-4">
               <Loader className="animate-spin text-primary" />
@@ -311,7 +317,7 @@ export default function Dashboard() {
                 <Bot className="w-8 h-8 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
-                  <CardDescription className="text-muted-foreground">Hey, {user.firstName || user.username}</CardDescription>
+                  <CardDescription className="text-muted-foreground">Hey, {user.email}</CardDescription>
                 </div>
               </div>
           </div>

@@ -1,8 +1,9 @@
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "sonner";
-import { ClerkProvider } from '@clerk/nextjs';
 import AuthNav from '@/components/auth-nav';
+import { AuthProvider } from '@/hooks/use-auth';
+
 
 export const metadata: Metadata = {
   title: 'VizBot',
@@ -15,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}>
+    <AuthProvider>
       <html lang="en" className="dark">
         <body className='font-code'>
           <AuthNav />
@@ -23,6 +24,6 @@ export default function RootLayout({
           <Toaster />
         </body>
       </html>
-    </ClerkProvider>
+    </AuthProvider>
   );
 }
