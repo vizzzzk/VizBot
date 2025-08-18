@@ -1,3 +1,4 @@
+
 // src/app/profile/page.tsx
 'use client';
 
@@ -9,6 +10,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
 import AvatarUpdater from '@/components/AvatarUpdater';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ProfilePage() {
   const { user, resetPassword } = useAuth();
@@ -34,12 +37,22 @@ export default function ProfilePage() {
   return (
     <AuthGuard>
       <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-        <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
-        <p className="text-muted-foreground">
-          Manage your personal information and account settings.
-        </p>
+        <div className="flex items-center gap-4 mb-4">
+            <Button asChild variant="outline" size="icon">
+              <Link href="/dashboard">
+                  <ArrowLeft className="h-4 w-4" />
+                  <span className="sr-only">Back to Dashboard</span>
+              </Link>
+            </Button>
+            <div>
+                 <h2 className="text-3xl font-bold tracking-tight">Profile</h2>
+                <p className="text-muted-foreground">
+                Manage your personal information and account settings.
+                </p>
+            </div>
+        </div>
         <Separator />
-        <div className="grid gap-6">
+        <div className="grid gap-6 mt-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Profile</CardTitle>
@@ -75,3 +88,5 @@ export default function ProfilePage() {
     </AuthGuard>
   );
 }
+
+    

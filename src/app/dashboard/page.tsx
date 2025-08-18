@@ -23,6 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 
 const initialPortfolio: Portfolio = {
@@ -266,6 +267,15 @@ function DashboardContent() {
       }
   }
 
+    const getInitials = (name: string | null | undefined) => {
+        if (!name) return 'U';
+        const names = name.split(' ');
+        if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+        }
+        return name[0].toUpperCase();
+    };
+
   const exportToCSV = (data: TradeHistoryItem[]) => {
     const headers = [
       'Trade ID', 'Instrument', 'Expiry', 'Action', 'Quantity (Lots)',
@@ -326,9 +336,11 @@ function DashboardContent() {
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <MoreVertical />
-                    <span className="sr-only">Open user menu</span>
+                   <Button variant="ghost" className="h-10 w-10 rounded-full">
+                     <Avatar className="h-9 w-9">
+                        <AvatarImage src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'user'} />
+                        <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
+                    </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -438,4 +450,5 @@ export default function Dashboard() {
     )
 }
 
+    
     
