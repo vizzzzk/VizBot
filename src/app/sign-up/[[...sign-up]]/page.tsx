@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function SignupPage() {
+  const router = useRouter();
   const { signup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -23,7 +25,7 @@ export default function SignupPage() {
     try {
       await signup(email, password, name);
       alert('Please check your email to verify your account.');
-      location.assign('/dashboard');
+      router.replace('/dashboard');
     } catch (e: any) {
       console.error('Signup error:', e?.code, e?.message);
       setErr(e.message);
@@ -79,7 +81,7 @@ export default function SignupPage() {
             {err && <p className="text-sm text-destructive">{err}</p>}
           </CardContent>
           <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" disabled={busy || !email || !password}>
+            <Button type="submit" className="w-full" disabled={busy || !email || !password || !name}>
               {busy ? "Creating account..." : "Create account"}
             </Button>
             <div className="mt-4 text-center text-sm">

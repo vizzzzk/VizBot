@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,11 +10,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export default function LoginPage() {
-  const { login, loginWithGoogle } = useAuth();
+  const router = useRouter();
+  const params = useSearchParams();
+  const { login, loginWithGoogle, user, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!loading && user) {
+      const next = params.get('next') || '/dashboard';
+      router.replace(next);
+    }
+  }, [loading, user, params, router]);
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +32,8 @@ export default function LoginPage() {
     setErr(null);
     try {
       await login(email, password);
-      location.assign('/dashboard');
+      const next = params.get('next') || '/dashboard';
+      router.replace(next);
     } catch (e: any) {
       console.error('Login error:', e?.code, e?.message);
       setErr(e.message);
@@ -35,13 +47,18 @@ export default function LoginPage() {
     setErr(null);
     try {
       await loginWithGoogle();
-      location.assign('/dashboard');
+      const next = params.get('next') || '/dashboard';
+      router.replace(next);
     } catch (e: any) {
       console.error('Google Login error:', e?.code, e?.message);
       setErr(e.message);
     } finally {
       setBusy(false);
     }
+  }
+
+  if (loading || user) {
+    return <div className="grid min-h-[50vh] place-items-center">Loading...</div>;
   }
 
   return (
