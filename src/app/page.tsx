@@ -350,19 +350,19 @@ export default function Home() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4 font-code">
-      <Card className="w-full max-w-2xl h-[90vh] flex flex-col shadow-2xl rounded-2xl bg-[#1e293b] border-slate-700">
-        <CardHeader className="border-b border-slate-700">
+      <Card className="w-full max-w-2xl h-[90vh] flex flex-col shadow-2xl rounded-2xl bg-card border-secondary">
+        <CardHeader className="border-b border-secondary">
           <div className="flex items-center justify-between gap-3">
              <div className="flex items-center gap-3">
-                <Bot className="w-8 h-8 text-slate-300" />
+                <Bot className="w-8 h-8 text-muted-foreground" />
                 <div>
-                  <CardTitle className="text-2xl font-bold">VizBot</CardTitle>
-                  <CardDescription className="text-slate-400">Professional NIFTY Options Analysis</CardDescription>
+                  <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
+                  <CardDescription className="text-muted-foreground">Professional NIFTY Options Analysis</CardDescription>
                 </div>
               </div>
                <div>
                 {isHydrating ? (
-                  <Loader className="animate-spin text-slate-300" />
+                  <Loader className="animate-spin text-muted-foreground" />
                 ) : user ? (
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-muted-foreground hidden sm:inline">{user.displayName || user.email}</span>
@@ -386,7 +386,7 @@ export default function Home() {
              <ChatMessage id="thinking" role="bot" content={<div className="flex items-center gap-2"><Loader className="w-4 h-4 animate-spin" /> Thinking...</div>} onExpirySelect={() => {}} onCommandClick={() => {}} />
           )}
         </CardContent>
-        <div className="border-t border-slate-700 p-4 bg-[#1e293b]/80 backdrop-blur-sm rounded-b-2xl">
+        <div className="border-t border-secondary p-4 bg-card/80 backdrop-blur-sm rounded-b-2xl">
            <div className="flex gap-2 mb-3 flex-wrap">
               <Button variant="outline" size="sm" onClick={() => handleCommandClick('start')} disabled={isPending || !user}><Rocket /> Start</Button>
               <Button variant="outline" size="sm" onClick={() => handleCommandClick('auth')} disabled={isPending || !user}><KeyRound /> Auth</Button>
@@ -396,17 +396,17 @@ export default function Home() {
                 <DialogTrigger asChild>
                   <Button variant="outline" size="sm" disabled={isPending || !user}><BookOpen/> Journal</Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl bg-[#1e293b] border-slate-700">
+                <DialogContent className="max-w-4xl bg-card border-secondary">
                   <DialogHeader>
                     <DialogTitle>Trade Journal</DialogTitle>
-                    <DialogDescription className="text-slate-400">
+                    <DialogDescription className="text-muted-foreground">
                       A log of all your closed trades.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="max-h-[60vh] overflow-y-auto">
                     <Table>
                       <TableHeader>
-                        <TableRow className="border-slate-700">
+                        <TableRow className="border-secondary">
                           <TableHead>Instrument</TableHead>
                           <TableHead>Entry Date</TableHead>
                            <TableHead>Entry/Exit Price</TableHead>
@@ -417,7 +417,7 @@ export default function Home() {
                       </TableHeader>
                       <TableBody>
                         {portfolio.tradeHistory?.length > 0 ? portfolio.tradeHistory.map((trade) => (
-                          <TableRow key={trade.id} className="border-slate-700">
+                          <TableRow key={trade.id} className="border-secondary">
                             <TableCell>{trade.strike} {trade.type}</TableCell>
                             <TableCell>{new Date(trade.entryTimestamp).toLocaleDateString()}</TableCell>
                             <TableCell>{trade.entryPrice.toFixed(2)} / {trade.exitPrice?.toFixed(2) ?? 'N/A'}</TableCell>
@@ -426,7 +426,7 @@ export default function Home() {
                             <TableCell className={trade.netPnl >= 0 ? 'text-green-400' : 'text-red-400'}>{trade.netPnl >= 0 ? 'Win' : 'Loss'}</TableCell>
                           </TableRow>
                         )) : (
-                           <TableRow className="border-slate-700">
+                           <TableRow className="border-secondary">
                             <TableCell colSpan={6} className="text-center">No closed trades yet.</TableCell>
                           </TableRow>
                         )}
@@ -452,7 +452,7 @@ export default function Home() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder={user ? "Type your message or use the menu..." : "Please sign in to start."}
-              className="flex-1 bg-slate-800 border-slate-600"
+              className="flex-1"
               disabled={isPending || !user}
               aria-label="Chat input"
             />
