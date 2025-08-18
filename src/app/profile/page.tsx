@@ -13,7 +13,7 @@ import AvatarUpdater from '@/components/AvatarUpdater';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 
-export default function ProfilePage() {
+function ProfileContent() {
   const { user, resetPassword } = useAuth();
   const [isSendingReset, setIsSendingReset] = useState(false);
 
@@ -35,8 +35,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <AuthGuard>
-      <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6 bg-background">
         <div className="flex items-center gap-4 mb-4">
             <Button asChild variant="outline" size="icon">
               <Link href="/dashboard">
@@ -85,8 +84,14 @@ export default function ProfilePage() {
             </Card>
         </div>
       </div>
-    </AuthGuard>
   );
 }
 
+export default function ProfilePage() {
+    return (
+        <AuthGuard>
+            <ProfileContent />
+        </AuthGuard>
+    )
+}
     

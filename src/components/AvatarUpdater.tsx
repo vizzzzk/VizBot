@@ -12,6 +12,7 @@ import { Progress } from './ui/progress';
 import { toast } from 'sonner';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Loader2 } from 'lucide-react';
+import { Label } from './ui/label';
 
 
 export default function AvatarUpdater() {
@@ -149,7 +150,7 @@ export default function AvatarUpdater() {
     <form onSubmit={handleUpdate} className="space-y-6">
         <div className="flex items-center gap-4">
              <Avatar className="h-20 w-20">
-                <AvatarImage src={preview ?? `https://placehold.co/128x128.png`} alt={user?.displayName ?? 'User'} data-ai-hint="profile picture" />
+                <AvatarImage src={preview ?? undefined} alt={user?.displayName ?? 'User'} />
                 <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
             </Avatar>
             <input
@@ -175,7 +176,7 @@ export default function AvatarUpdater() {
             </div>
         </div>
       <div>
-        <label htmlFor="fullName" className="block text-sm font-medium mb-1">Full name</label>
+        <Label htmlFor="fullName" className="block text-sm font-medium mb-1">Full name</Label>
         <Input
           id="fullName"
           className="w-full"

@@ -1,28 +1,36 @@
 // src/components/AuthGuard.tsx
 'use client';
 
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
+import { Loader } from 'lucide-react';
 
 export default function AuthGuard({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const redirected = useRef(false);
 
   useEffect(() => {
-    if (loading) return; // wait for Firebase to resolve
-    if (!user && !redirected.current) {
-      redirected.current = true; // prevent double redirects
-      // Optional: if user lands on a protected deep link, remember it
-      const next = encodeURIComponent(pathname || '/dashboard');
-      router.replace(`/sign-in?next=${next}`);
+    if (loading) {
+      return; // Wait until loading is complete
+    }
+
+    if (!user) {
+      // Remember the path the user wanted to visit
+      const next = pathname ? `?next=${encodeURIComponent(pathname)}` : '';
+      router.replace(`/sign-in${next}`);
     }
   }, [loading, user, pathname, router]);
 
   if (loading || !user) {
-    return <div className="grid min-h-[50vh] place-items-center">Loading…</div>;
+    return (
+        <div className="flex items-center justify-center min-h-screen bg-background p-4">
+            <Loader className="animate-spin text-primary" />
+            <p className="ml-2">Authenticating...</p>
+        </div>
+    );
   }
+
   return <>{children}</>;
 }

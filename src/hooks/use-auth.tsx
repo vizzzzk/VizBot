@@ -1,4 +1,4 @@
-// src/lib/use-auth.tsx
+// src/hooks/use-auth.tsx
 'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
@@ -13,6 +13,7 @@ import {
   sendPasswordResetEmail,
   sendEmailVerification,
   signOut,
+  updateProfile,
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
