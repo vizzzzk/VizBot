@@ -1,7 +1,7 @@
 // src/app/profile/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import AuthGuard from '@/components/AuthGuard';
 import { Button } from '@/components/ui/button';
@@ -11,12 +11,16 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 import { Separator } from '@/components/ui/separator';
+import { Loader2 } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, loading, updateUserProfile, resetPassword } = useAuth();
+  const { user, loading, updateUserProfile, resetPassword, updateUserProfilePicture } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isSendingReset, setIsSendingReset] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
   useEffect(() => {
     if (user) {
@@ -58,6 +62,27 @@ export default function ProfilePage() {
       }
   }
 
+  const handlePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast.error("File is too large. Please select an image under 2MB.");
+        return;
+    }
+
+    setIsUploading(true);
+    const toastId = toast.loading("Uploading picture...");
+    try {
+        await updateUserProfilePicture(file);
+        toast.success("Profile picture updated successfully!", { id: toastId });
+    } catch (error: any) {
+        toast.error(error.message, { id: toastId });
+    } finally {
+        setIsUploading(false);
+    }
+  };
+
   const getInitials = (name: string | null | undefined) => {
     if (!name) return 'U';
     const names = name.split(' ');
@@ -91,8 +116,16 @@ export default function ProfilePage() {
                             <AvatarImage src={user?.photoURL ?? `https://placehold.co/128x128.png`} alt={user?.displayName ?? 'User'} data-ai-hint="profile picture" />
                             <AvatarFallback>{getInitials(user?.displayName)}</AvatarFallback>
                         </Avatar>
-                        <Button type="button" variant="outline" onClick={() => toast.info("Feature coming soon!")}>
-                            Upload Picture
+                        <input
+                            type="file"
+                            ref={fileInputRef}
+                            onChange={handlePictureUpload}
+                            className="hidden"
+                            accept="image/png, image/jpeg, image/gif"
+                        />
+                        <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                            {isUploading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            Change Picture
                         </Button>
                     </div>
 

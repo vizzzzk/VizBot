@@ -15,7 +15,8 @@ import {
   signOut,
   updateProfile,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, storage } from '@/lib/firebase';
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 
 type AuthContextType = {
   user: User | null;
@@ -26,6 +27,7 @@ type AuthContextType = {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (profileData: { displayName?: string, photoURL?: string }) => Promise<void>;
+  updateUserProfilePicture: (file: File) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -37,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   logout: async () => {},
   resetPassword: async () => {},
   updateUserProfile: async () => {},
+  updateUserProfilePicture: async () => {},
 });
 
 const errorMap: Record<string, string> = {
@@ -137,7 +140,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle, updateUserProfile }), [user, loading]);
+  const updateUserProfilePicture = async (file: File) => {
+    if (!auth.currentUser) {
+      throw new Error("You must be logged in to update your profile picture.");
+    }
+    try {
+      const storageRef = ref(storage, `profile-pictures/${auth.currentUser.uid}`);
+      await uploadBytes(storageRef, file);
+      const photoURL = await getDownloadURL(storageRef);
+      await updateUserProfile({ photoURL });
+    } catch (error) {
+       throw new Error(friendly(error, "Failed to upload profile picture."));
+    }
+  }
+
+  const value = useMemo(() => ({ user, loading, signup, login, logout, resetPassword, loginWithGoogle, updateUserProfile, updateUserProfilePicture }), [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>

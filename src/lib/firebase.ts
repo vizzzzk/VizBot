@@ -1,6 +1,7 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
+import { getStorage } from 'firebase/storage';
 
 // ⚠️ Firebase client config is public by design. Keep secrets server-side only.
 const firebaseConfig = {
@@ -28,6 +29,7 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 // Export a single shared auth instance
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 // Choose your default persistence (local keeps users signed in across tabs/restarts)
 setPersistence(auth, browserLocalPersistence).catch(() => {
@@ -35,4 +37,4 @@ setPersistence(auth, browserLocalPersistence).catch(() => {
   setPersistence(auth, browserSessionPersistence);
 });
 
-export { app, auth };
+export { app, auth, storage };
