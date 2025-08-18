@@ -147,7 +147,8 @@ function ChatDemo() {
                 <div className="flex items-center gap-3">
                     <Bot className="w-8 h-8 text-muted-foreground" />
                     <div>
-                        <CardTitle className="text-2xl font-bold text-foreground">Get Started</CardTitle>
+                        <CardTitle className="text-2xl font-bold text-foreground">VizBot</CardTitle>
+                        <CardDescription className="text-muted-foreground">Get Started</CardDescription>
                     </div>
                 </div>
             </CardHeader>
