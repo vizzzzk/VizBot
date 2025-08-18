@@ -15,13 +15,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
-      <html lang="en" className="dark">
-        <body className='font-code'>
+    <html lang="en" className="dark">
+      <body>
+        <AuthProvider>
           {children}
           <Toaster />
-        </body>
-      </html>
-    </AuthProvider>
+        </AuthProvider>
+      </body>
+    </html>
   );
 }
