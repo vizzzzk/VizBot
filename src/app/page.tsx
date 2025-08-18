@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useTransition } from 'react';
-import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, LogIn, Github } from 'lucide-react';
+import { Bot, User, Loader, Rocket, KeyRound, Newspaper, Send, Briefcase, XCircle, RefreshCw, BookOpen, LogIn, Github, HelpCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
